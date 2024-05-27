@@ -3,12 +3,46 @@
     <title>_blackhole</title>
     <link href="https://spaceface42.github.io/_blackhole/feed.xml" rel="self" />
     <link href="https://spaceface42.github.io/_blackhole" />
-    <updated>2024-05-27T10:09:04+02:00</updated>
+    <updated>2024-05-27T10:40:29+02:00</updated>
     <author>
         <name>spaceface</name>
     </author>
     <id>https://spaceface42.github.io/_blackhole</id>
 
+    <entry>
+        <title>post no 03</title>
+        <author>
+            <name>spaceface</name>
+        </author>
+        <link href="https://spaceface42.github.io/_blackhole/post-no-03/"/>
+        <id>https://spaceface42.github.io/_blackhole/post-no-03/</id>
+
+        <updated>2024-05-27T10:40:14+02:00</updated>
+            <summary>
+                <![CDATA[
+                    with images
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                
+  <p>
+    with images
+  </p>
+
+    <figure class="post__image post__image--center">
+      <a href="https://spaceface42.github.io/_blackhole/post-no-03/">
+        <img loading="lazy" src="https://spaceface42.github.io/_blackhole/media/posts/3/demo.jpg" height="247" width="800" alt=""  sizes="100vw" srcset="https://spaceface42.github.io/_blackhole/media/posts/3/responsive/demo-xs.jpg 300w ,https://spaceface42.github.io/_blackhole/media/posts/3/responsive/demo-sm.jpg 480w ,https://spaceface42.github.io/_blackhole/media/posts/3/responsive/demo-md.jpg 768w ,https://spaceface42.github.io/_blackhole/media/posts/3/responsive/demo-lg.jpg 1024w ,https://spaceface42.github.io/_blackhole/media/posts/3/responsive/demo-xl.jpg 1360w ,https://spaceface42.github.io/_blackhole/media/posts/3/responsive/demo-2xl.jpg 1600w">
+      </a>
+      
+    </figure>
+
+  <p>
+    
+  </p>
+            ]]>
+        </content>
+    </entry>
     <entry>
         <title>_post no 02</title>
         <author>
