@@ -14,20 +14,21 @@
             "url": "https://spaceface42.github.io/_blackhole/post-no-03/",
             "title": "post no 03",
             "summary": "with images",
-            "content_html": "\n  <p>\n    with images\n  </p>\n\n    <figure class=\"post__image post__image--center\">\n      <a href=\"https://spaceface42.github.io/_blackhole/post-no-03/\">\n        <img loading=\"lazy\" src=\"https://spaceface42.github.io/_blackhole/media/posts/3/demo.jpg\" height=\"247\" width=\"800\" alt=\"\"  sizes=\"100vw\" srcset=\"https://spaceface42.github.io/_blackhole/media/posts/3/responsive/demo-xs.jpg 300w ,https://spaceface42.github.io/_blackhole/media/posts/3/responsive/demo-sm.jpg 480w ,https://spaceface42.github.io/_blackhole/media/posts/3/responsive/demo-md.jpg 768w ,https://spaceface42.github.io/_blackhole/media/posts/3/responsive/demo-lg.jpg 1024w ,https://spaceface42.github.io/_blackhole/media/posts/3/responsive/demo-xl.jpg 1360w ,https://spaceface42.github.io/_blackhole/media/posts/3/responsive/demo-2xl.jpg 1600w\">\n      </a>\n      \n    </figure>\n\n  <p>\n    \n  </p>",
+            "content_html": "\n  <p>\n    with images\n  </p>\n\n  <p>\n    \n  </p>",
+            "image": "https://spaceface42.github.io/_blackhole/media/posts/3/demo-2.jpg",
             "author": {
                 "name": "spaceface"
             },
             "tags": [
             ],
             "date_published": "2024-05-27T10:40:14+02:00",
-            "date_modified": "2024-05-27T10:40:29+02:00"
+            "date_modified": "2024-05-27T11:14:07+02:00"
         },
         {
             "id": "https://spaceface42.github.io/_blackhole/_post-no-02/",
             "url": "https://spaceface42.github.io/_blackhole/_post-no-02/",
             "title": "_post no 02",
-            "summary": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae nobis eos consequatur. Placeat ipsum, numquam dignissimos dolore velit, incidunt distinctio officia nobis ex modi totam a obcaecati, eius porro amet!",
+            "summary": "Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae nobis eos consequatur. Placeat ipsum, numquam dignissimos dolore velit, incidunt distinctio officia nobis ex modi totam&hellip;",
             "content_html": "<div>\n<div>Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae nobis eos consequatur. Placeat ipsum, numquam dignissimos dolore velit, incidunt distinctio officia nobis ex modi totam a obcaecati, eius porro amet!</div>\n</div>",
             "author": {
                 "name": "spaceface"
