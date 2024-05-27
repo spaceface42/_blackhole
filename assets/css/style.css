@@ -7,6 +7,16 @@
   Therefore, attach only the style.css file to the head section.
 */
 
+* * *:hover {
+   background: rgba(255, 99, 71, 0.112) url('./marching-ants.svg');
+   background-size: 100% 100%; 
+   background-repeat: no-repeat;
+}
+
+
+
+
+
 /*** Layout ***/
 body {
    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
