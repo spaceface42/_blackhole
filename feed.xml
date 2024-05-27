@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+    <title>_blackhole</title>
+    <link href="https://spaceface42.github.io/_blackhole/feed.xml" rel="self" />
+    <link href="https://spaceface42.github.io/_blackhole" />
+    <updated>2024-05-27T10:09:04+02:00</updated>
+    <author>
+        <name>spaceface</name>
+    </author>
+    <id>https://spaceface42.github.io/_blackhole</id>
+
+    <entry>
+        <title>_post no 02</title>
+        <author>
+            <name>spaceface</name>
+        </author>
+        <link href="https://spaceface42.github.io/_blackhole/_post-no-02/"/>
+        <id>https://spaceface42.github.io/_blackhole/_post-no-02/</id>
+
+        <updated>2024-05-27T10:09:04+02:00</updated>
+            <summary>
+                <![CDATA[
+                    Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae nobis eos consequatur. Placeat ipsum, numquam dignissimos dolore velit, incidunt distinctio officia nobis ex modi totam a obcaecati, eius porro amet!
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <div>
+<div>Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae nobis eos consequatur. Placeat ipsum, numquam dignissimos dolore velit, incidunt distinctio officia nobis ex modi totam a obcaecati, eius porro amet!</div>
+</div>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>_blackhole</title>
+        <author>
+            <name>spaceface</name>
+        </author>
+        <link href="https://spaceface42.github.io/_blackhole/_blackhole/"/>
+        <id>https://spaceface42.github.io/_blackhole/_blackhole/</id>
+
+        <updated>2024-05-27T10:03:18+02:00</updated>
+            <summary>
+                <![CDATA[
+                    developer area
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                
+  <p>
+    developer area
+  </p>
+            ]]>
+        </content>
+    </entry>
+</feed>

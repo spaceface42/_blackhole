@@ -1,0 +1,3 @@
+User-agent: *
+Disallow:
+Sitemap: https://spaceface42.github.io/_blackhole/sitemap.xml
