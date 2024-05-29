@@ -14,7 +14,7 @@
         },
         "html.format.endWithNewline": true,
         "html.trace.server": "verbose",
-        "liveServer.settings.multiRootWorkspaceName": "site-template",
+        "liveServer.settings.multiRootWorkspaceName": "_blackhole",
         "liveServer.settings.port": 5501,
         "liveServer.settings.root": "/docs",
         "emmet.preferences": {},
