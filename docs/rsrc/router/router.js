@@ -1,24 +1,22 @@
+// import Events from "./events";
 import Events from "../router/events.js";
 
 const ROUTER_TYPES = {
-  hash: "hash",
-  history: "history"
-};
-
-const defer = (x) => {
-  setTimeout(() => x(), 10);
-};
-
-const wA = window.addEventListener;
-
-const tS = (s) => {
-  return s.replace(/^\/+|\/+$/gm, "");
-};
+    hash: "hash",
+    history: "history"
+  },
+  defer = (x) => {
+    setTimeout(() => x(), 10);
+  },
+  wA = window.addEventListener,
+  tS = (s) => {
+    return s.replace(/^\/+|\/+$/gm, "");
+  };
 
 /**
  * SPA Router - replacement for Framework Routers (history and hash).
  */
-class Router {
+export class Router {
   constructor(options = {}) {
     this.events = new Events(this);
     this.options = { type: ROUTER_TYPES.history, ...options };
@@ -68,9 +66,14 @@ class Router {
   }
 
   #findRoute(url) {
-    const match = url.match(/([A-Za-z_0-9.]*)/);
-    const test = match ? `/${match[1]}` : null;
-    return this.routeHash.includes(test) ? test : null;
+    var test =
+      "/" +
+      url.match(/([A-Za-z_0-9.]*)/gm, (match, token) => {
+        return token;
+      })[1];
+    let r = this.routeHash.includes(test) ? test : null;
+
+    return r;
   }
 
   #tryNav(href) {
@@ -96,7 +99,7 @@ class Router {
 
   #onNav(e) {
     // handle click in document
-    const href = (e.composedPath ? e.composedPath()[0] : e.target)?.closest("[href]")?.href;
+    const href = (e.path[0] ?? e.target)?.closest("[href]")?.href;
     if (href && this.#tryNav(href)) e.preventDefault();
   }
 
@@ -107,7 +110,7 @@ class Router {
   setRoute(path) {
     if (!this.#findRoute(path)) throw TypeError("Invalid route");
 
-    const href = this.useHash ? `#${path}` : `${document.location.origin}${path}`;
+    let href = this.useHash ? "#" + path : document.location.origin + path;
     history.replaceState(null, null, href);
     this.#tryNav(href);
   }
@@ -116,5 +119,3 @@ class Router {
     return this.options.type === ROUTER_TYPES.hash;
   }
 }
-
-export default Router;
