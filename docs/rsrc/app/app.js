@@ -59,7 +59,7 @@ function initializeUX() {
     // Additional UX setup logic can go here
 
 
-    import { Router } from "../router";
+
 
     window.router = new Router({
       type: "history",
