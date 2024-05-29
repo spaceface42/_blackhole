@@ -1,16 +1,19 @@
 import Events from "../router/events.js";
 
 const ROUTER_TYPES = {
-    hash: "hash",
-    history: "history"
-  },
-  defer = (x) => {
-    setTimeout(() => x(), 10);
-  },
-  wA = window.addEventListener,
-  tS = (s) => {
-    return s.replace(/^\/+|\/+$/gm, "");
-  };
+  hash: "hash",
+  history: "history"
+};
+
+const defer = (x) => {
+  setTimeout(() => x(), 10);
+};
+
+const wA = window.addEventListener;
+
+const tS = (s) => {
+  return s.replace(/^\/+|\/+$/gm, "");
+};
 
 /**
  * SPA Router - replacement for Framework Routers (history and hash).
@@ -28,7 +31,7 @@ class Router {
   listen() {
     this.routeHash = Object.keys(this.options.routes);
 
-    if (!this.routeHash.includes("/")) throw TypeError("No home route found");
+    if (!this.routeHash.includes("/")) throw new TypeError("No home route found");
 
     if (this.useHash) {
       wA("hashchange", this.#hashChanged.bind(this));
@@ -38,7 +41,7 @@ class Router {
 
       if (this.#findRoute(document.location.pathname)) {
         href += document.location.pathname;
-        if (href.endsWith("/")) href = href.substring(0, href.length - 1);
+        if (href.endsWith("/")) href = href.slice(0, -1);
       }
       document.addEventListener("click", this.#onNav.bind(this));
       wA("popstate", this.#onPop.bind(this));
@@ -65,14 +68,8 @@ class Router {
   }
 
   #findRoute(url) {
-    var test =
-      "/" +
-      url.match(/([A-Za-z_0-9.]*)/gm, (match, token) => {
-        return token;
-      })[1];
-    let r = this.routeHash.includes(test) ? test : null;
-
-    return r;
+    const test = `/${tS(url)}`;
+    return this.routeHash.includes(test) ? test : null;
   }
 
   #tryNav(href) {
@@ -94,10 +91,10 @@ class Router {
         return true;
       }
     }
+    return false;
   }
 
   #onNav(e) {
-    // handle click in document
     const href = (e.path[0] ?? e.target)?.closest("[href]")?.href;
     if (href && this.#tryNav(href)) e.preventDefault();
   }
@@ -107,9 +104,9 @@ class Router {
    * @param {String} path
    */
   setRoute(path) {
-    if (!this.#findRoute(path)) throw TypeError("Invalid route");
+    if (!this.#findRoute(path)) throw new TypeError("Invalid route");
 
-    let href = this.useHash ? "#" + path : document.location.origin + path;
+    let href = this.useHash ? `#${path}` : `${document.location.origin}${path}`;
     history.replaceState(null, null, href);
     this.#tryNav(href);
   }
