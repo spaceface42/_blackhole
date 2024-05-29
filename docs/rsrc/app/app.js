@@ -62,21 +62,22 @@ function initializeUX() {
 
 
 
-
     window.router = new Router({
         type: "history",
         routes: {
           "/": "hello world!",
           "/about": "about",
           "/products": "products",
-          "/products/451/details": "details 451"
+          "/products/:id/details": "details"
         }
       })
         .listen()
         .on("route", (e) => {
-          console.log("Route active:", e.detail.route, "URL:", e.detail.url);
-          document.getElementById("route").innerHTML = e.detail.route;
+          console.log("Route active:", e.detail.route, "URL:", e.detail.url, "Params:", e.detail.params);
+          document.getElementById("route").innerHTML = `${e.detail.route} ${JSON.stringify(e.detail.params)}`;
         });
+      
+
       
 
 

@@ -60,16 +60,36 @@ class Router {
   }
 
   #emitChange(path, url) {
+    const route = this.#findRoute(path);
     this.events.trigger("route", {
-      route: this.options.routes[path],
+      route: this.options.routes[route.pattern],
+      params: route.params,
       path: path,
       url: url
     });
   }
 
   #findRoute(url) {
-    const test = `/${tS(url)}`;
-    return this.routeHash.includes(test) ? test : null;
+    for (const pattern of this.routeHash) {
+      const paramNames = [];
+      const regex = new RegExp(
+        "^" +
+          pattern.replace(/:[^\s/]+/g, (match) => {
+            paramNames.push(match.substring(1));
+            return "([\\w-]+)";
+          }) +
+          "$"
+      );
+      const match = url.match(regex);
+      if (match) {
+        const params = match.slice(1).reduce((acc, value, index) => {
+          acc[paramNames[index]] = value;
+          return acc;
+        }, {});
+        return { pattern, params };
+      }
+    }
+    return null;
   }
 
   #tryNav(href) {
@@ -78,16 +98,16 @@ class Router {
       document.location.origin
     );
     if (url.protocol.startsWith("http")) {
-      const routePath = this.#findRoute(url.pathname);
-      if (routePath && this.options.routes[routePath]) {
+      const route = this.#findRoute(url.pathname);
+      if (route && this.options.routes[route.pattern]) {
         if (!this.useHash) {
           window.history.pushState(
-            { path: routePath },
-            routePath,
+            { path: url.pathname },
+            route.pattern,
             url.origin + url.pathname
           );
         }
-        this.#emitChange(routePath, url);
+        this.#emitChange(url.pathname, url);
         return true;
       }
     }
@@ -104,7 +124,8 @@ class Router {
    * @param {String} path
    */
   setRoute(path) {
-    if (!this.#findRoute(path)) throw new TypeError("Invalid route");
+    const route = this.#findRoute(path);
+    if (!route) throw new TypeError("Invalid route");
 
     let href = this.useHash ? `#${path}` : `${document.location.origin}${path}`;
     history.replaceState(null, null, href);
