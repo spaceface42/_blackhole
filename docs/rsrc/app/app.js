@@ -69,7 +69,7 @@ window.router = new Router({
     routes: {
     "/": "home",
     "/about": "about",
-    "/products/:id/detail": "detail"
+    "/products/:id/details": "details"
     }
 })
     .listen()
