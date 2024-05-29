@@ -1,3 +1,4 @@
+// Simple Vanilla JS Event System
 class Emitter {
   constructor(obj) {
     this.obj = obj;
@@ -16,7 +17,7 @@ class Emitter {
 class Events {
   constructor(host) {
     this.host = host;
-    new Emitter(host); // Add simple event system
+    new Emitter(host); // add simple event system
     host.on = (eventName, func) => {
       host.addEventListener(eventName, func);
       return host;
