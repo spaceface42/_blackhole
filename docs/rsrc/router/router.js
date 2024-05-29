@@ -61,12 +61,14 @@ class Router {
 
   #emitChange(path, url) {
     const { pattern, params } = this.#findRoute(path);
-    this.events.trigger("route", {
-      route: this.options.routes[pattern],
-      params: params,
-      path: path,
-      url: url
-    });
+    if (pattern) {
+      this.events.trigger("route", {
+        route: this.options.routes[pattern],
+        params: params,
+        path: path,
+        url: url
+      });
+    }
   }
 
   #findRoute(url) {
