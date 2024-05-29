@@ -60,10 +60,10 @@ class Router {
   }
 
   #emitChange(path, url) {
-    const route = this.#findRoute(path);
+    const { pattern, params } = this.#findRoute(path);
     this.events.trigger("route", {
-      route: this.options.routes[route.pattern],
-      params: route.params,
+      route: this.options.routes[pattern],
+      params: params,
       path: path,
       url: url
     });
@@ -89,7 +89,7 @@ class Router {
         return { pattern, params };
       }
     }
-    return null;
+    return { pattern: null, params: {} };
   }
 
   #tryNav(href) {
@@ -98,12 +98,12 @@ class Router {
       document.location.origin
     );
     if (url.protocol.startsWith("http")) {
-      const route = this.#findRoute(url.pathname);
-      if (route && this.options.routes[route.pattern]) {
+      const { pattern } = this.#findRoute(url.pathname);
+      if (pattern && this.options.routes[pattern]) {
         if (!this.useHash) {
           window.history.pushState(
             { path: url.pathname },
-            route.pattern,
+            pattern,
             url.origin + url.pathname
           );
         }
@@ -124,8 +124,8 @@ class Router {
    * @param {String} path
    */
   setRoute(path) {
-    const route = this.#findRoute(path);
-    if (!route) throw new TypeError("Invalid route");
+    const { pattern } = this.#findRoute(path);
+    if (!pattern) throw new TypeError("Invalid route");
 
     let href = this.useHash ? `#${path}` : `${document.location.origin}${path}`;
     history.replaceState(null, null, href);

@@ -61,7 +61,6 @@ function initializeUX() {
 
 
 
-
     window.router = new Router({
         type: "history",
         routes: {
@@ -76,7 +75,6 @@ function initializeUX() {
           console.log("Route active:", e.detail.route, "URL:", e.detail.url, "Params:", e.detail.params);
           document.getElementById("route").innerHTML = `${e.detail.route} ${JSON.stringify(e.detail.params)}`;
         });
-      
       
 
 
