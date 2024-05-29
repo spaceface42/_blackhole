@@ -1,0 +1,23 @@
+{
+    "folders": [
+        {
+            "path": "."
+        },
+        {
+            "path": "docs"
+        }
+    ],
+    "settings": {
+        "workspace.isHidden": false,
+        "emmet.syntaxProfiles": {
+            "html": "xhtml"
+        },
+        "html.format.endWithNewline": true,
+        "html.trace.server": "verbose",
+        "liveServer.settings.multiRootWorkspaceName": "site-template",
+        "liveServer.settings.port": 5501,
+        "liveServer.settings.root": "/docs",
+        "emmet.preferences": {},
+        "editor.wordWrap": "on"
+    }
+}

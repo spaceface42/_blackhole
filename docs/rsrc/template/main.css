@@ -1,0 +1,8 @@
+main {
+    counter-reset: my-counter;
+  }
+  main > p::before {
+    counter-increment: my-counter; /* Increment the value of section counter by 1 */
+    content: "partial no: " counter(my-counter) ": "; /* Display counter value in default style (decimal) */
+    background-color: lightpink;
+  }
