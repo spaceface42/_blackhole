@@ -68,7 +68,8 @@ function initializeUX() {
         routes: {
           "/": "hello world!",
           "/about": "about",
-          "/products": "products"
+          "/products": "products",
+          "/products/451/details": "details 451"
         }
       })
         .listen()
