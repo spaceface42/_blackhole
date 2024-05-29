@@ -16,7 +16,7 @@ const ROUTER_TYPES = {
 /**
  * SPA Router - replacement for Framework Routers (history and hash).
  */
-export class Router {
+class Router {
   constructor(options = {}) {
     this.events = new Events(this);
     this.options = { type: ROUTER_TYPES.history, ...options };
@@ -119,3 +119,5 @@ export class Router {
     return this.options.type === ROUTER_TYPES.hash;
   }
 }
+
+export default Router;
