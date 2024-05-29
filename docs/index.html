@@ -1,118 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>___title___</title>
-
-    <link rel="stylesheet" href="/rsrc/template/main.css" />
-
-    <!-- app js -->
-    <script type="module" src="./rsrc/app/app.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Promise-based Router</title>
 </head>
 <body>
 
-
-
-<h1>hello world!</h1>
-
-<aside>
-  
-  <style>
-    html,
-    body {
-      margin: 0;
-    }
-
-    body {
-      padding-left: 1rem;
-    }
-
-    main {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    aside {
-      border-right: 2px solid rgba(236, 235, 235, 0.467);
-    }
-
-    aside ul {
-      list-style: none;
-    }
-
-    aside ul li {
-      padding: 0.3rem;
-    }
-
-    footer {
-      position: fixed;
-      bottom: 1rem;
-      width: 100%;
-      text-align: center;
-    }
-  </style>
-  <ul>
-    <li>
-      <a href="/">Home</a>
-    </li>
-
-    <li>
-      <a href="/products">Products</a>
-
-      <ul>
-        <li>
-          <a href="/products/451/details">HC 23i</a>
-        </li>
-      </ul>
-    </li>
-
-    <li>
-      <a href="/about">About</a>
-    </li>
-    <li>
-      <a href="/contact">contact</a>
-    </li>
-    <li>
-      <a href="/missing">Missing route</a>
-    </li>
-  </ul>
-</aside>
-
-<section id="route"></section>
-
-<main>
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-
-  <!-- 
-  <div>
-    <p>and the _404.html partial should be nonexistent</p>
-    <link rel="html" href="./rsrc/template/_404.html" />
-  </div>
-  -->
-
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-  <link rel="html" href="/rsrc/template/_fakepartial.html" />
-</main>
-
-
+<h1>Promise-based Router Example</h1>
 
 <script>
-    console.log('bye all');
+  class Emitter {
+    constructor(obj) {
+      this.obj = obj;
+      this.eventTarget = document.createDocumentFragment();
+      ["addEventListener", "dispatchEvent", "removeEventListener"].forEach(
+        this.delegate,
+        this
+      );
+    }
+
+    delegate(method) {
+      this.obj[method] = this.eventTarget[method].bind(this.eventTarget);
+    }
+  }
+
+  class Events {
+    constructor(host) {
+      this.host = host;
+      new Emitter(host); // add simple event system
+      host.on = (eventName, func) => {
+        host.addEventListener(eventName, func);
+        return host;
+      };
+    }
+
+    trigger(event, detail, ev) {
+      if (typeof event === "object" && event instanceof Event)
+        return this.host.dispatchEvent(event);
+
+      if (!ev) ev = new Event(event, { bubbles: false, cancelable: true });
+
+      ev.detail = { ...(detail || {}), host: this.host };
+
+      return this.host.dispatchEvent(ev);
+    }
+  }
+
+  class Router {
+    constructor() {
+      this.routes = {};
+      this.events = new Events(document);
+    }
+
+    addRoute(path, handler) {
+      this.routes[path] = handler;
+    }
+
+    navigate(path) {
+      return new Promise((resolve, reject) => {
+        const handler = this.routes[path];
+        if (handler) {
+          handler();
+          resolve();
+        } else {
+          reject(new Error(`Route not found: ${path}`));
+        }
+      });
+    }
+  }
+
+  // Usage
+  const router = new Router();
+
+  router.addRoute("/", () => {
+    console.log("Home Page");
+  });
+
+  router.addRoute("/about", () => {
+    console.log("About Page");
+  });
+
+  router.navigate("/about")
+    .then(() => console.log("Navigation successful"))
+    .catch((error) => console.error(error.message));
 </script>
-
-
 
 </body>
 </html>
