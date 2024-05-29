@@ -59,7 +59,7 @@ function initializeUX() {
     // Additional UX setup logic can go here
 
 
-
+console.log('fsck');
 
     window.router = new Router({
       type: "history",
