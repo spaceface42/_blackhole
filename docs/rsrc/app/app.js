@@ -67,17 +67,14 @@ console.log('fsck');
 window.router = new Router({
     type: "history",
     routes: {
-    "/": "home",
-    "/about": "about",
-    "/products/:id/details": "details"
+        "/": "home",
+        "/about": "about",
+        "/products/:id/details": "details"
     }
-})
-    .listen()
-    .on("route", (e) => {
+}).listen().on("route", (e) => {
     console.log("Route active:", e.detail.route, "URL: ", e.detail.url);
-
     document.getElementById("route").innerHTML = e.detail.route;
-    });
+});
 
 
 
