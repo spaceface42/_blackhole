@@ -11,7 +11,7 @@ const fetchPartial = new FetchPartial();
 const promiseDom = new PromiseDom();
 
 
-import Events from "../router/events.js";
+
 import Router from '../router/router.js';
 
 
@@ -63,18 +63,23 @@ console.log('fsck');
 
 
 
+// Create a new router instance
+const router = new Router({ mode: 'history' });
 
-window.router = new Router({
-    type: "history",
-    routes: {
-        "/": "home",
-        "/about": "about",
-        "/products/:id/details": "details"
-    }
-}).listen().on("route", (e) => {
-    console.log("Route active:", e.detail.route, "URL: ", e.detail.url);
-    document.getElementById("route").innerHTML = e.detail.route;
-});
+// Add routes
+router.addRoute('/', () => console.log('Home page'));
+router.addRoute('/about', () => console.log('About page'));
+router.addRoute('/contact', () => console.log('Contact page'));
+
+// Start listening for route changes
+router.listen();
+
+// Navigate to a route
+router.navigateTo('/about');
+
+
+
+
 
 
 
