@@ -1,4 +1,5 @@
 // import Events from "./events";
+import Events from "../router/events.js";
 
 const ROUTER_TYPES = {
     hash: "hash",
