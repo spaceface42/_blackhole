@@ -119,3 +119,6 @@ export class Router {
     return this.options.type === ROUTER_TYPES.hash;
   }
 }
+
+
+default export Router;
