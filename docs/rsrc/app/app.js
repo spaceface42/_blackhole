@@ -66,7 +66,7 @@ function initializeUX() {
                                 window.router = new Router({
                                 type: "history",
                                 routes: {
-                                    "/": "home",
+                                    "/": "hello world!",
                                     "/about": "about",
                                     "/products": "products"
                                 }
