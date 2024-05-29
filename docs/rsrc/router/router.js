@@ -121,4 +121,4 @@ export class Router {
 }
 
 
-default export Router;
+export default Router;
