@@ -90,32 +90,28 @@ class Router {
         return { regex, names };
     }
 
-/**
- * Get the parameters from the URL
- * @param match any
- * @param names Array<string>
- */
-private getParams(match: RegExpMatchArray | null, names: string[]): Record<string, string> | null {
-    if (!names || names.length === 0 || !match) return null;
-    return match.slice(1, names.length + 1)
-        .reduce((params, value, index) => {
-            if (params === null) params = {};
-            params[names[index] ?? ""] = value; // Use optional chaining to safely access names[index]
-            return params;
-        }, {} as Record<string, string>);
-}
+    /**
+     * Get the parameters from the URL
+     * @param match any
+     * @param names Array<string>
+     */
+    private getParams(match: RegExpMatchArray | null, names: string[]): Record<string, string> | null {
+        if (!names || names.length === 0 || !match) return null;
+        return match.slice(1, names.length + 1)
+            .reduce((params, value, index) => {
+                if (params === null) params = {};
+                params[names[index] ?? ""] = value; // Use optional chaining to safely access names[index]
+                return params;
+            }, {} as Record<string, string>);
+    }
 
-
-/**
- * Check if a value is defined
- * @param value any
- */
-private isDefined(value: any): value is string {
-    return typeof value !== 'undefined';
-}
-
-
-
+    /**
+     * Check if a value is defined
+     * @param value any
+     */
+    private isDefined(value: any): value is string {
+        return typeof value !== 'undefined';
+    }
 
     /**
      * Find the matching routes
