@@ -3,134 +3,201 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Promise-based Router Example</title>
+  <title>Router Example</title>
 </head>
 <body>
+  <nav>
+    <a href="/" data-router>Home</a>
+    <a href="/about" data-router>About</a>
+    <a href="/contact" data-router>Contact</a>
+    <a href="/user/123" data-router>User 123</a>
+  </nav>
+  <div id="content"></div>
 
-<h1>Promise-based Router Example</h1>
-<button id="homeBtn">Go to Home</button>
-<button id="aboutBtn">Go to About</button>
-<div id="content"></div>
-
-<script>
-  class Emitter {
-    constructor(obj) {
-      this.obj = obj;
-      this.eventTarget = document.createDocumentFragment();
-      ["addEventListener", "dispatchEvent", "removeEventListener"].forEach(
-        this.delegate,
-        this
-      );
+  <script type="module">
+    // Import the Router class
+    // import { Router } from './router.js';
+    // Regex constants
+const PARAMS_REGEX = /[:*](\w+)/g;
+const REPLACE_VARIABLE_REGEXP = "([^/]+)";
+const FOLLOWED_BY_SLASH = "(?:/$|$)";
+class Router {
+    // Constructor
+    constructor(root) {
+        this.routes = [];
+        this.root = root ? root : window.location.origin;
+        // Bind to prevent multiple click handlers
+        this.go = this.go.bind(this);
     }
-
-    delegate(method) {
-      this.obj[method] = this.eventTarget[method].bind(this.eventTarget);
+    /**
+     * Initialize the router
+     */
+    init() {
+        this.redefineLinks();
+        window.addEventListener("popstate", () => this.onChange());
+        this.onChange();
     }
-  }
-
-  class Events {
-    constructor(host) {
-      this.host = host;
-      new Emitter(host); // add simple event system
-      host.on = (eventName, func) => {
-        host.addEventListener(eventName, func);
-        return host;
-      };
-    }
-
-    trigger(event, detail, ev) {
-      if (typeof event === "object" && event instanceof Event)
-        return this.host.dispatchEvent(event);
-
-      if (!ev) ev = new Event(event, { bubbles: false, cancelable: true });
-
-      ev.detail = { ...(detail || {}), host: this.host };
-
-      return this.host.dispatchEvent(ev);
-    }
-  }
-
-  class Router {
-    constructor(useHash = false) {
-      this.routes = {};
-      this.events = new Events(document);
-      this.useHash = useHash;
-
-      if (this.useHash) {
-        window.addEventListener('hashchange', () => this.handleNavigation(location.hash.slice(1)));
-      } else {
-        window.addEventListener('popstate', () => this.handleNavigation(location.pathname));
-      }
-
-      this.handleNavigation(this.useHash ? location.hash.slice(1) : location.pathname);
-    }
-
-    addRoute(path, handler) {
-      if (this.isValidPath(path)) {
-        this.routes[path] = handler;
-      } else {
-        console.error(`Invalid path: ${path}`);
-      }
-    }
-
-    navigate(path) {
-      if (!this.isValidPath(path)) {
-        return Promise.reject(new Error(`Invalid path: ${path}`));
-      }
-
-      return new Promise((resolve, reject) => {
-        const handler = this.routes[path];
-        if (handler) {
-          if (this.useHash) {
-            location.hash = path;
-          } else {
-            history.pushState(null, '', path);
-          }
-          handler();
-          resolve();
-        } else {
-          reject(new Error(`Route not found: ${path}`));
+    /**
+     * Collect links and
+     * add event listeners
+     */
+    redefineLinks() {
+        let links = document.querySelectorAll("a[data-router]");
+        for (let link of links) {
+            link.addEventListener("click", this.go);
         }
-      });
     }
-
-    handleNavigation(path) {
-      const handler = this.routes[path];
-      if (handler) {
-        handler();
-      } else {
-        console.error(`Route not found: ${path}`);
-      }
+    /**
+     * When that route is called
+     * @param path string
+     * @param func any
+     */
+    on(path, handler) {
+        let params = path.match(PARAMS_REGEX);
+        if (params) {
+            params = params.map(param => param.replace(":", ""));
+        }
+        this.routes.push({
+            path,
+            handler,
+            params
+        });
+        return this;
     }
-
-    isValidPath(path) {
-      const regex = /^(\/[a-zA-Z0-9_-]+)+$/;
-      return regex.test(path);
+    /**
+     * Set not found handler
+     * @param handler function
+     */
+    notFound(handler) {
+        this._notFound = handler;
+        return this;
     }
-  }
+    /**
+     * Navigate to path
+     * @param path string
+     */
+    navigate(path) {
+        const url = `${this.root}${path}`;
+        window.history.pushState(null, null, url);
+        this.onChange();
+    }
+    /**
+     * Replace parameters regex
+     * @param route Route
+     */
+    replace(route) {
+        const names = [];
+        const regex = new RegExp(route.path.replace(PARAMS_REGEX, (full, name) => {
+            names.push(name);
+            return REPLACE_VARIABLE_REGEXP;
+        }) + FOLLOWED_BY_SLASH);
+        return { regex, names };
+    }
+    /**
+     * Get the parameters from the URL
+     * @param match any
+     * @param names Array<string>
+     */
+    getParams(match, names) {
+        if (names.length === 0)
+            return null;
+        if (!match)
+            return null;
+        return match
+            .splice(1, names.length)
+            .reduce((params, value, index) => {
+            if (params === null)
+                params = {};
+            params[names[index]] = value;
+            return params;
+        }, null);
+    }
+    /**
+     * Find the matching routes
+     * @param path string
+     */
+    findRoutes(path) {
+        return this.routes
+            .map(route => {
+            const { regex, names } = this.replace(route);
+            const match = path.replace(/^\/+/, "/").match(regex);
+            const params = this.getParams(match, names);
+            return match ? { match, route, params } : null;
+        })
+            .filter(m => m);
+    }
+    /**
+     * Get the match URL
+     * @param path string
+     */
+    match(path) {
+        return this.findRoutes(path)[0];
+    }
+    /**
+     * On route change
+     */
+    onChange() {
+        let url = window.location.pathname;
+        let query = window.location.search;
+        if (this.root) {
+            url = url.replace(this.root, "");
+        }
+        const m = this.match(url);
+        if (!m) {
+            return this._notFound(query);
+        }
+        const { route, params } = m;
+        return route.handler(query, params);
+    }
+    /**
+     * Go to URL
+     * @param event any
+     */
+    go(event) {
+        event.preventDefault();
+        const query = event.target.closest('a').search;
+        const pathname = event.target.closest('a').pathname;
+        const url = query
+            ? `${this.root}${pathname}${query}`
+            : `${this.root}${pathname}`;
+        window.history.pushState(null, null, url);
+        this.onChange();
+    }
+}
 
-  const router = new Router(false); // Change to true for hash-based routing
+// export { Router };
 
-  router.addRoute("/", () => {
-    document.getElementById("content").textContent = "Home Page";
-  });
+    // Initialize the router
+    const router = new Router(window.location.origin);
 
-  router.addRoute("/about", () => {
-    document.getElementById("content").textContent = "About Page";
-  });
+    // Define routes
+    router.on('/', () => {
+      document.getElementById('content').innerHTML = '<h2>Home Page</h2><p>Welcome to the home page!</p>';
+    });
 
-  document.getElementById("homeBtn").addEventListener("click", () => {
-    router.navigate("/")
-      .then(() => console.log("Navigation to Home successful"))
-      .catch((error) => console.error(error.message));
-  });
+    router.on('/about', () => {
+      document.getElementById('content').innerHTML = '<h2>About Page</h2><p>Learn more about us on this page.</p>';
+    });
 
-  document.getElementById("aboutBtn").addEventListener("click", () => {
-    router.navigate("/about")
-      .then(() => console.log("Navigation to About successful"))
-      .catch((error) => console.error(error.message));
-  });
-</script>
+    router.on('/contact', () => {
+      document.getElementById('content').innerHTML = '<h2>Contact Page</h2><p>Contact us through this page.</p>';
+    });
 
+    router.on('/user/:id', (query, params) => {
+      document.getElementById('content').innerHTML = `<h2>User Page</h2><p>Viewing user with ID: ${params.id}</p>`;
+    });
+
+    router.notFound((query) => {
+      document.getElementById('content').innerHTML = '<h2>404 - Not Found</h2><p>The page you are looking for does not exist.</p>';
+    });
+
+    // Start the router
+    router.init();
+
+    // Add event listeners to navigation links
+    document.querySelectorAll('a[data-router]').forEach(link => {
+      link.addEventListener('click', router.go);
+    });
+  </script>
 </body>
 </html>
