@@ -1,11 +1,11 @@
 // Regex constants
 const PARAMS_REGEX = /[:*](\w+)/g;
-const PARAM_VARIABLE = "([^/]+)";
+const REPLACE_VARIABLE_REGEXP = "([^/]+)";
 const FOLLOWED_BY_SLASH = "(?:/$|$)";
 
 interface Route {
     path: string;
-    handler: (query: Record<string, string>, params?: Record<string, string>) => Promise<void>;
+    handler: (query: string, params?: Record<string, string>) => void;
     params?: string[];
 }
 
@@ -20,16 +20,19 @@ class Router {
         this.go = this.go.bind(this);
     }
 
-    init(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.redefineLinks();
-            window.addEventListener("popstate", () => {
-                this.onChange().then(resolve).catch(reject);
-            });
-            this.onChange().then(resolve).catch(reject);
-        });
+    /**
+     * Initialize the router
+     */
+    init(): void {
+        this.redefineLinks();
+        window.addEventListener("popstate", () => this.onChange());
+        this.onChange();
     }
 
+    /**
+     * Collect links and
+     * add event listeners
+     */
     private redefineLinks(): void {
         const links = Array.from(document.querySelectorAll("a[data-router]"));
         for (const link of links) {
@@ -37,7 +40,12 @@ class Router {
         }
     }
 
-    on(path: string, handler: (query: Record<string, string>, params?: Record<string, string>) => Promise<void>): this {
+    /**
+     * When that route is called
+     * @param path string
+     * @param handler function
+     */
+    on(path: string, handler: (query: string, params?: Record<string, string>) => void): this {
         let params = path.match(PARAMS_REGEX) as RegExpMatchArray | null;
         if (params) {
             params = params.map(param => param.replace(":", "")) as RegExpMatchArray;
@@ -50,47 +58,65 @@ class Router {
         return this;
     }
 
+    /**
+     * Set not found handler
+     * @param handler function
+     */
     notFound(handler: (query: string) => void): this {
         this._notFound = handler;
         return this;
     }
 
-    navigate(path: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            const url = `${this.root}${path}`;
-            try {
-                window.history.pushState(null, '', url);
-                this.onChange().then(resolve).catch(reject);
-            } catch (error) {
-                reject(error);
-            }
-        });
+    /**
+     * Navigate to path
+     * @param path string
+     */
+    navigate(path: string): void {
+        const url = `${this.root}${path}`;
+        window.history.pushState(null, '', url);
+        this.onChange();
     }
 
+    /**
+     * Replace parameters regex
+     * @param route Route
+     */
     private replace(route: Route): { regex: RegExp, names: string[] } {
         const names: string[] = [];
         const regex = new RegExp(route.path.replace(PARAMS_REGEX, (_, name) => {
             names.push(name);
-            return PARAM_VARIABLE;
+            return REPLACE_VARIABLE_REGEXP;
         }) + FOLLOWED_BY_SLASH);
         return { regex, names };
     }
 
+    /**
+     * Get the parameters from the URL
+     * @param match any
+     * @param names Array<string>
+     */
     private getParams(match: RegExpMatchArray | null, names: string[]): Record<string, string> | null {
         if (!names || names.length === 0 || !match) return null;
-        const params: Record<string, string> = {};
-        for (let index = 0; index < names.length; index++) {
-            const paramValue = match[index + 1];
-            if (paramValue !== undefined) {
-                params[names[index]] = paramValue;
-            }
-        }
-        return params;
+        return match.slice(1, names.length + 1)
+            .reduce((params, value, index) => {
+                if (params === null) params = {};
+                params[names[index] ?? ""] = value; // Use optional chaining to safely access names[index]
+                return params;
+            }, {} as Record<string, string>);
     }
-    
-    
-    
 
+    /**
+     * Check if a value is defined
+     * @param value any
+     */
+    private isDefined(value: any): value is string {
+        return typeof value !== 'undefined';
+    }
+
+    /**
+     * Find the matching routes
+     * @param path string
+     */
     private findRoutes(path: string): Array<{ match: RegExpMatchArray, route: Route, params: Record<string, string> | null }> {
         return this.routes
             .map(route => {
@@ -102,37 +128,37 @@ class Router {
             .filter((m): m is { match: RegExpMatchArray, route: Route, params: Record<string, string> | null } => m !== null);
     }
 
-    private match(path: string): { match: RegExpMatchArray, route: Route, params: Record<string, string> | null } | null {
+    /**
+     * Get the match URL
+     * @param path string
+     */
+    // private match(path: string): { match: RegExpMatchArray, route: Route, params: Record<string, string> | null } | null {
+    private match(path: string): { match: RegExpMatchArray | null; route: Route; params: Record<string, string> | null } | null {
         return this.findRoutes(path)[0] || null;
     }
 
-    private onChange(): Promise<void> {
-        return new Promise((resolve) => {
-            let url = window.location.pathname;
-            const query = window.location.search;
-            if (this.root) {
-                url = url.replace(this.root, "");
-            }
-            const m = this.match(url);
-            if (!m) {
-                if (this._notFound) this._notFound(query);
-                resolve();
-            } else {
-                const { route, params } = m;
-                route.handler(this.getQueryParams(query), params || undefined).then(() => resolve());
-            }
-        });
+    /**
+     * On route change
+     */
+    private onChange(): void {
+        let url = window.location.pathname;
+        const query = window.location.search;
+        if (this.root) {
+            url = url.replace(this.root, "");
+        }
+        const m = this.match(url);
+        if (!m) {
+            if (this._notFound) this._notFound(query);
+            return;
+        }
+        const { route, params } = m;
+        return route.handler(query, params || undefined);
     }
 
-    private getQueryParams(query: string): Record<string, string> {
-        const params = new URLSearchParams(query);
-        const queryParams: Record<string, string> = {};
-        params.forEach((value, key) => {
-            queryParams[key] = value;
-        });
-        return queryParams;
-    }
-
+    /**
+     * Go to URL
+     * @param event any
+     */
     private go(event: MouseEvent): void {
         event.preventDefault();
         const target = event.target as HTMLElement;
@@ -143,12 +169,8 @@ class Router {
         const url = query
             ? `${this.root}${pathname}${query}`
             : `${this.root}${pathname}`;
-        try {
-            window.history.pushState(null, '', url);
-            this.onChange();
-        } catch (error) {
-            console.error("Error navigating:", error);
-        }
+        window.history.pushState(null, '', url);
+        this.onChange();
     }
 }
 

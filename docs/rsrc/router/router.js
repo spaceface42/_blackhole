@@ -1,6 +1,6 @@
 // Regex constants
 const PARAMS_REGEX = /[:*](\w+)/g;
-const REPLACE_VARIABLE_REGEXP = "([^/]+)";
+const PARAM_VARIABLE = "([^/]+)";
 const FOLLOWED_BY_SLASH = "(?:/$|$)";
 class Router {
     constructor(root) {
@@ -8,29 +8,21 @@ class Router {
         this.root = root ? root : window.location.origin;
         this.go = this.go.bind(this);
     }
-    /**
-     * Initialize the router
-     */
     init() {
-        this.redefineLinks();
-        window.addEventListener("popstate", () => this.onChange());
-        this.onChange();
+        return new Promise((resolve, reject) => {
+            this.redefineLinks();
+            window.addEventListener("popstate", () => {
+                this.onChange().then(resolve).catch(reject);
+            });
+            this.onChange().then(resolve).catch(reject);
+        });
     }
-    /**
-     * Collect links and
-     * add event listeners
-     */
     redefineLinks() {
         const links = Array.from(document.querySelectorAll("a[data-router]"));
         for (const link of links) {
             link.addEventListener("click", this.go);
         }
     }
-    /**
-     * When that route is called
-     * @param path string
-     * @param handler function
-     */
     on(path, handler) {
         let params = path.match(PARAMS_REGEX);
         if (params) {
@@ -43,63 +35,42 @@ class Router {
         });
         return this;
     }
-    /**
-     * Set not found handler
-     * @param handler function
-     */
     notFound(handler) {
         this._notFound = handler;
         return this;
     }
-    /**
-     * Navigate to path
-     * @param path string
-     */
     navigate(path) {
-        const url = `${this.root}${path}`;
-        window.history.pushState(null, '', url);
-        this.onChange();
+        return new Promise((resolve, reject) => {
+            const url = `${this.root}${path}`;
+            try {
+                window.history.pushState(null, '', url);
+                this.onChange().then(resolve).catch(reject);
+            }
+            catch (error) {
+                reject(error);
+            }
+        });
     }
-    /**
-     * Replace parameters regex
-     * @param route Route
-     */
     replace(route) {
         const names = [];
         const regex = new RegExp(route.path.replace(PARAMS_REGEX, (_, name) => {
             names.push(name);
-            return REPLACE_VARIABLE_REGEXP;
+            return PARAM_VARIABLE;
         }) + FOLLOWED_BY_SLASH);
         return { regex, names };
     }
-    /**
-     * Get the parameters from the URL
-     * @param match any
-     * @param names Array<string>
-     */
     getParams(match, names) {
         if (!names || names.length === 0 || !match)
             return null;
-        return match.slice(1, names.length + 1)
-            .reduce((params, value, index) => {
-            var _a;
-            if (params === null)
-                params = {};
-            params[(_a = names[index]) !== null && _a !== void 0 ? _a : ""] = value; // Use optional chaining to safely access names[index]
-            return params;
-        }, {});
+        const params = {};
+        for (let index = 0; index < names.length; index++) {
+            const paramValue = match[index + 1];
+            if (paramValue !== undefined) {
+                params[names[index]] = paramValue;
+            }
+        }
+        return params;
     }
-    /**
-     * Check if a value is defined
-     * @param value any
-     */
-    isDefined(value) {
-        return typeof value !== 'undefined';
-    }
-    /**
-     * Find the matching routes
-     * @param path string
-     */
     findRoutes(path) {
         return this.routes
             .map(route => {
@@ -110,35 +81,36 @@ class Router {
         })
             .filter((m) => m !== null);
     }
-    /**
-     * Get the match URL
-     * @param path string
-     */
     match(path) {
         return this.findRoutes(path)[0] || null;
     }
-    /**
-     * On route change
-     */
     onChange() {
-        let url = window.location.pathname;
-        const query = window.location.search;
-        if (this.root) {
-            url = url.replace(this.root, "");
-        }
-        const m = this.match(url);
-        if (!m) {
-            if (this._notFound)
-                this._notFound(query);
-            return;
-        }
-        const { route, params } = m;
-        return route.handler(query, params || undefined);
+        return new Promise((resolve) => {
+            let url = window.location.pathname;
+            const query = window.location.search;
+            if (this.root) {
+                url = url.replace(this.root, "");
+            }
+            const m = this.match(url);
+            if (!m) {
+                if (this._notFound)
+                    this._notFound(query);
+                resolve();
+            }
+            else {
+                const { route, params } = m;
+                route.handler(this.getQueryParams(query), params || undefined).then(() => resolve());
+            }
+        });
     }
-    /**
-     * Go to URL
-     * @param event any
-     */
+    getQueryParams(query) {
+        const params = new URLSearchParams(query);
+        const queryParams = {};
+        params.forEach((value, key) => {
+            queryParams[key] = value;
+        });
+        return queryParams;
+    }
     go(event) {
         event.preventDefault();
         const target = event.target;
@@ -150,8 +122,13 @@ class Router {
         const url = query
             ? `${this.root}${pathname}${query}`
             : `${this.root}${pathname}`;
-        window.history.pushState(null, '', url);
-        this.onChange();
+        try {
+            window.history.pushState(null, '', url);
+            this.onChange();
+        }
+        catch (error) {
+            console.error("Error navigating:", error);
+        }
     }
 }
 export { Router };
