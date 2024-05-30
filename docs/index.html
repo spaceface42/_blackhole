@@ -1,118 +1,105 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Promise-based Router Example</title>
-</head>
-<body>
+type RouteHandler = () => void;
 
-<h1>Promise-based Router Example</h1>
-<button id="homeBtn">Go to Home</button>
-<button id="aboutBtn">Go to About</button>
-<div id="content"></div>
+class Emitter {
+  constructor(obj: any) {
+    this.obj = obj;
+    this.eventTarget = document.createDocumentFragment();
+    ["addEventListener", "dispatchEvent", "removeEventListener"].forEach(
+      this.delegate,
+      this
+    );
+  }
 
-<script>
-  class Emitter {
-    constructor(obj) {
-      this.obj = obj;
-      this.eventTarget = document.createDocumentFragment();
-      ["addEventListener", "dispatchEvent", "removeEventListener"].forEach(
-        this.delegate,
-        this
-      );
+  delegate(method: string) {
+    this.obj[method] = this.eventTarget[method].bind(this.eventTarget);
+  }
+}
+
+class Events {
+  constructor(host: any) {
+    this.host = host;
+    new Emitter(host); // add simple event system
+    host.on = (eventName: string, func: EventListener) => {
+      host.addEventListener(eventName, func);
+      return host;
+    };
+  }
+
+  trigger(event: string | Event, detail?: any, ev?: Event) {
+    if (typeof event === "object" && event instanceof Event)
+      return this.host.dispatchEvent(event);
+
+    if (!ev) ev = new Event(event, { bubbles: false, cancelable: true });
+
+    ev.detail = { ...(detail || {}), host: this.host };
+
+    return this.host.dispatchEvent(ev);
+  }
+}
+
+class Router {
+  private routes: { [path: string]: RouteHandler } = {};
+  private events: Events;
+  private useHash: boolean;
+
+  constructor(useHash: boolean = false) {
+    // Initialize routes and events
+    this.events = new Events(document);
+    this.useHash = useHash;
+
+    if (this.useHash) {
+      window.addEventListener('hashchange', () => this.handleNavigation(location.hash.slice(1)));
+    } else {
+      window.addEventListener('popstate', () => this.handleNavigation(location.pathname));
     }
 
-    delegate(method) {
-      this.obj[method] = this.eventTarget[method].bind(this.eventTarget);
+    // Initial navigation
+    this.handleNavigation(this.useHash ? location.hash.slice(1) : location.pathname);
+  }
+
+  addRoute(path: string, handler: RouteHandler): void {
+    // Check if the path is valid before adding the route
+    if (this.isValidPath(path)) {
+      this.routes[path] = handler;
+    } else {
+      console.error(`Invalid path: ${path}`);
     }
   }
 
-  class Events {
-    constructor(host) {
-      this.host = host;
-      new Emitter(host); // add simple event system
-      host.on = (eventName, func) => {
-        host.addEventListener(eventName, func);
-        return host;
-      };
+  navigate(path: string): Promise<void> {
+    // Check if the path is valid before navigating
+    if (!this.isValidPath(path)) {
+      return Promise.reject(new Error(`Invalid path: ${path}`));
     }
 
-    trigger(event, detail, ev) {
-      if (typeof event === "object" && event instanceof Event)
-        return this.host.dispatchEvent(event);
-
-      if (!ev) ev = new Event(event, { bubbles: false, cancelable: true });
-
-      ev.detail = { ...(detail || {}), host: this.host };
-
-      return this.host.dispatchEvent(ev);
-    }
-  }
-
-  class Router {
-    constructor() {
-      // Initialize routes and events
-      this.routes = {};
-      this.events = new Events(document);
-    }
-
-    addRoute(path, handler) {
-      // Check if the path is valid before adding the route
-      if (this.isValidPath(path)) {
-        this.routes[path] = handler;
-      } else {
-        console.error(`Invalid path: ${path}`);
-      }
-    }
-
-    navigate(path) {
-      // Check if the path is valid before navigating
-      if (!this.isValidPath(path)) {
-        return Promise.reject(new Error(`Invalid path: ${path}`));
-      }
-
-      return new Promise((resolve, reject) => {
-        const handler = this.routes[path];
-        if (handler) {
-          handler();
-          resolve();
+    return new Promise((resolve, reject) => {
+      const handler = this.routes[path];
+      if (handler) {
+        if (this.useHash) {
+          location.hash = path;
         } else {
-          reject(new Error(`Route not found: ${path}`));
+          history.pushState(null, '', path);
         }
-      });
-    }
+        handler();
+        resolve();
+      } else {
+        reject(new Error(`Route not found: ${path}`));
+      }
+    });
+  }
 
-    isValidPath(path) {
-      // Use a regular expression to check if the path contains invalid characters or sequences
-      const regex = /^(\/[a-zA-Z0-9_-]+)+$/;
-      return regex.test(path);
+  private handleNavigation(path: string): void {
+    const handler = this.routes[path];
+    if (handler) {
+      handler();
+    } else {
+      console.error(`Route not found: ${path}`);
     }
   }
 
-  // Usage
-  const router = new Router();
-
-  router.addRoute("/", () => {
-    document.getElementById("content").textContent = "Home Page";
-  });
-
-  router.addRoute("/about", () => {
-    document.getElementById("content").textContent = "About Page";
-  });
-
-  document.getElementById("homeBtn").addEventListener("click", () => {
-    router.navigate("/")
-      .then(() => console.log("Navigation to Home successful"))
-      .catch((error) => console.error(error.message));
-  });
-
-  document.getElementById("aboutBtn").addEventListener("click", () => {
-    router.navigate("/about")
-      .then(() => console.log("Navigation to About successful"))
-      .catch((error) => console.error(error.message));
-  });
-</script>
-
-</body>
-</html>
+  private isValidPath(path: string): boolean {
+    // Use a regular expression to check if the path contains invalid characters or sequences
+    const regex = /^(\/[a-zA-Z0-9_-]+)+$/;
+    return regex.test(path);
+  }
+}
