@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Promise-based Router</title>
+  <title>Promise-based Router Example</title>
 </head>
 <body>
 
 <h1>Promise-based Router Example</h1>
+<button id="homeBtn">Go to Home</button>
+<button id="aboutBtn">Go to About</button>
+<div id="content"></div>
 
 <script>
   class Emitter {
@@ -49,15 +52,26 @@
 
   class Router {
     constructor() {
+      // Initialize routes and events
       this.routes = {};
       this.events = new Events(document);
     }
 
     addRoute(path, handler) {
-      this.routes[path] = handler;
+      // Check if the path is valid before adding the route
+      if (this.isValidPath(path)) {
+        this.routes[path] = handler;
+      } else {
+        console.error(`Invalid path: ${path}`);
+      }
     }
 
     navigate(path) {
+      // Check if the path is valid before navigating
+      if (!this.isValidPath(path)) {
+        return Promise.reject(new Error(`Invalid path: ${path}`));
+      }
+
       return new Promise((resolve, reject) => {
         const handler = this.routes[path];
         if (handler) {
@@ -68,22 +82,36 @@
         }
       });
     }
+
+    isValidPath(path) {
+      // Use a regular expression to check if the path contains invalid characters or sequences
+      const regex = /^(\/[a-zA-Z0-9_-]+)+$/;
+      return regex.test(path);
+    }
   }
 
   // Usage
   const router = new Router();
 
   router.addRoute("/", () => {
-    console.log("Home Page");
+    document.getElementById("content").textContent = "Home Page";
   });
 
   router.addRoute("/about", () => {
-    console.log("About Page");
+    document.getElementById("content").textContent = "About Page";
   });
 
-  router.navigate("/about")
-    .then(() => console.log("Navigation successful"))
-    .catch((error) => console.error(error.message));
+  document.getElementById("homeBtn").addEventListener("click", () => {
+    router.navigate("/")
+      .then(() => console.log("Navigation to Home successful"))
+      .catch((error) => console.error(error.message));
+  });
+
+  document.getElementById("aboutBtn").addEventListener("click", () => {
+    router.navigate("/about")
+      .then(() => console.log("Navigation to About successful"))
+      .catch((error) => console.error(error.message));
+  });
 </script>
 
 </body>

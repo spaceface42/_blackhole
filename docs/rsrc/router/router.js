@@ -1,73 +1,70 @@
-interface Route {
-  path: string;
-  handler: () => void;
-}
-
-interface RouterOptions {
-  mode: 'hash' | 'history';
-  root?: string;
-}
-
-export class Router {
-  private routes: Route[];
-  private mode: 'hash' | 'history';
-  private root: string;
-
-  constructor(options: RouterOptions) {
-    this.routes = [];
-    this.mode = options.mode || 'hash';
-    this.root = options.root || '/';
-  }
-
-  addRoute(path: string, handler: () => void): void {
-    this.routes.push({ path, handler });
-  }
-
-  removeRoute(path: string): void {
-    this.routes = this.routes.filter(route => route.path !== path);
-  }
-
-  clearRoutes(): void {
-    this.routes = [];
-  }
-
-  private navigateHash(): void {
-    const path = window.location.hash.slice(1) || '/';
-    this.navigate(path);
-  }
-
-  private navigateHistory(): void {
-    const path = window.location.pathname.slice(this.root.length) || '/';
-    this.navigate(path);
-  }
-
-  private navigate(path: string): void {
-    const route = this.routes.find(route => route.path === path);
-
-    if (route) {
-      route.handler();
-    } else {
-      // Handle 404
-      console.log('Route not found:', path);
+// Router class
+class Router extends Events {
+    constructor() {
+        super({});
+        this.routes = new Map();
     }
-  }
-
-  listen(): void {
-    if (this.mode === 'hash') {
-      window.addEventListener('hashchange', this.navigateHash.bind(this));
-      window.addEventListener('load', this.navigateHash.bind(this));
-    } else {
-      window.addEventListener('popstate', this.navigateHistory.bind(this));
-      window.addEventListener('load', this.navigateHistory.bind(this));
+    addRoute(path, handler) {
+        if (this.isValidRoute(path)) {
+            this.routes.set(path, handler);
+        }
+        else {
+            console.warn(`Invalid route: ${path}`);
+        }
     }
-  }
-
-  navigateTo(path: string): void {
-    if (this.mode === 'hash') {
-      window.location.hash = path;
-    } else {
-      window.history.pushState(null, '', this.root + path);
-      this.navigate(path);
+    navigate(path) {
+        return new Promise((resolve, reject) => {
+            if (this.routes.has(path)) {
+                this.routes.get(path)()
+                    .then(() => {
+                    this.trigger('routeChange', { path });
+                    resolve();
+                })
+                    .catch(reject);
+            }
+            else {
+                reject(`Route not found: ${path}`);
+            }
+        });
     }
-  }
+    isValidRoute(path) {
+        return !path.includes('../');
+    }
 }
+// History class
+class History extends Events {
+    constructor() {
+        super({});
+        window.onpopstate = (event) => {
+            if (event.state && event.state.path) {
+                this.trigger('navigate', { path: event.state.path });
+            }
+        };
+    }
+    pushState(path) {
+        return new Promise((resolve) => {
+            history.pushState({ path }, '', path);
+            this.trigger('navigate', { path });
+            resolve();
+        });
+    }
+}
+// Hash class
+class Hash extends Events {
+    constructor() {
+        super({});
+        window.addEventListener('hashchange', () => {
+            const path = location.hash.slice(1);
+            this.trigger('navigate', { path });
+        });
+    }
+    setHash(path) {
+        return new Promise((resolve) => {
+            location.hash = path;
+            this.trigger('navigate', { path });
+            resolve();
+        });
+    }
+}
+export {};
+//# sourceMappingURL=router.js.map

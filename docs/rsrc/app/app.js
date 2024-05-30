@@ -9,15 +9,6 @@ import FetchPartial from '../42/FetchPartial.js';
 const fetchPartial = new FetchPartial();
 // Instantiate PromiseDom
 const promiseDom = new PromiseDom();
-
-
-
-import Router from '../router/router.js';
-
-
-
-
-
 /**
  * Main entry point for the application.
  * This function initializes the application once the DOM is fully loaded.
@@ -57,35 +48,6 @@ function initializeUX() {
         appElement.innerHTML = '<h1>Welcome to the Application</h1>';
     }
     // Additional UX setup logic can go here
-
-
-console.log('fsck');
-
-
-
-// Create a new router instance
-const router = new Router({ mode: 'history' });
-
-// Add routes
-router.addRoute('/', () => console.log('Home page'));
-router.addRoute('/about', () => console.log('About page'));
-router.addRoute('/contact', () => console.log('Contact page'));
-
-// Start listening for route changes
-router.listen();
-
-// Navigate to a route
-router.navigateTo('/about');
-
-
-
-
-
-
-
-
-
-
 }
 // Use PromiseDom to wait for the DOM ready state before running the main function
 promiseDom.ready.then(() => {
