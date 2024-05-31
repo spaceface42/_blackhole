@@ -17,3 +17,4 @@ declare class Router {
 }
 declare const contentDiv: HTMLElement;
 declare const router: Router;
+declare function fetchData(): Promise<string>;

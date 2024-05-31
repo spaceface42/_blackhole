@@ -70,7 +70,6 @@ class Router {
     }
 }
 
-
 // Usage Example:
 
 const contentDiv = document.getElementById('content') as HTMLElement;
@@ -85,8 +84,21 @@ router
         contentDiv.innerHTML = '<h1>About</h1><p>This is the about page.</p>';
     })
     .addRoute('/contact', async () => {
-        contentDiv.innerHTML = '<h1>Contact</h1><p>Get in touch with us through the contact page.</p>';
+        contentDiv.innerHTML = '<h1>Contact</h1><p>Loading contact information...</p>';
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate async operation
+        contentDiv.innerHTML += '<p>Contact info loaded.</p>';
+    })
+    .addRoute('/data', async () => {
+        contentDiv.innerHTML = '<h1>Data</h1><p>Loading data...</p>';
+        const data = await fetchData();
+        contentDiv.innerHTML += `<p>Data: ${data}</p>`;
     });
+
+async function fetchData(): Promise<string> {
+    return new Promise(resolve => {
+        setTimeout(() => resolve('Fetched data from server'), 2000);
+    });
+}
 
 // Start the router
 router.start();
@@ -95,3 +107,4 @@ router.start();
 document.getElementById('home-link')?.addEventListener('click', () => router.navigate('/'));
 document.getElementById('about-link')?.addEventListener('click', () => router.navigate('/about'));
 document.getElementById('contact-link')?.addEventListener('click', () => router.navigate('/contact'));
+document.getElementById('data-link')?.addEventListener('click', () => router.navigate('/data'));
