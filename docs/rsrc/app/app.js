@@ -56,4 +56,6 @@ promiseDom.ready.then(() => {
 }).catch(error => {
     console.error('Error during DOM readiness check:', error);
 });
+import spx from 'spx';
+spx.connect({});
 //# sourceMappingURL=app.js.map

@@ -1,107 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Document</title>
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Router Example</title>
+    <style>
+        .nav-link {
+            margin: 0 10px;
+            cursor: pointer;
+            color: blue;
+            text-decoration: underline;
+        }
+        .content {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
     <nav>
-      <ul>
-        <li>
-          <a href="/" data-router>Home</a>
-        </li>
-        <li>
-          <a href="/about" data-router>About</a>
-        </li>
-        <li>
-          <a href="/contact" data-router>Contact</a>
-        </li>
-        <li>
-          <a href="/user" data-router>User</a>
-        </li>
-      </ul>
+        <span id="home-link" class="nav-link">Home</span>
+        <span id="about-link" class="nav-link">About</span>
+        <span id="contact-link" class="nav-link">Contact</span>
     </nav>
-
-    <div>
-      <button id="btn">Go to /contact with JS</button>
-    </div>
-
-    <div>
-      <a href="/contact" data-router>
-        <div style="position: relative; width: 100px; height: 100px; background-color: red;">
-
-        </div>
-      </a>
-    </div>
-
-    <div>
-      <a href="/user/123" data-router>User 123</a>
-    </div>
-
-    <div>
-      <a href="/user/123/sam" data-router>User 123 sam</a>
-    </div>
-
-    <div>
-      <a href="/user?id=123" data-router>User id=123</a>
-    </div>
-
-
-    <div>
-      <a href="/not-found" data-router>Not Found</a>
-    </div>
-
-    <div id="root">
-
+    <div class="content" id="content">
+        <!-- Content will be loaded here based on the route -->
     </div>
 
     <script type="module">
-      {
-        import("/rsrc/router/router.js").then(({ Router }) => {
-          const router = new Router('/demo');
-          const root = document.getElementById('root');
+        type RouteHandler = () => Promise<void>;
 
-          router
-            .on('/', () => {
-              console.log('Home');
-              root.innerHTML = 'Home';
-            })
-            .on('/about', () => {
-              console.log('About');
-              root.innerHTML = 'ABOUT <br> <a href="/" data-router>Home</a>';
-              router.redefineLinks();
-            })
-            .on('/contact', () => {
-              console.log('Contact');
-              root.innerHTML = 'Contact';
-            })
-            .on('/user', (query) => {
-              console.log('User', query);
-              root.innerHTML = 'User' + query;
-            })
-            .on('/user/:user_id', (query, params) => {
-              console.log('User', params);
-              root.innerHTML = 'User ' + JSON.stringify(params);
-            })
-            .on('/user/:user_id/:name', (query, params) => {
-              console.log('User', params);
-              root.innerHTML = 'User ' + JSON.stringify(params);
-            })
-            .notFound(query => {
-              console.log('Not Found');
-              root.innerHTML = '404';
-            })
-            .init();
+        interface Route {
+            path: string;
+            handler: RouteHandler;
+        }
 
-            const btn = document.querySelector('#btn');
+        class Router {
+            private routes: Route[] = [];
+            private mode: 'history' | 'hash';
+            private root: string;
 
-            btn.addEventListener('click', () => {
-              router.navigate('/contact');
+            constructor(mode: 'history' | 'hash' = 'history', root: string = '/') {
+                this.mode = mode;
+                this.root = root;
+                this.listen();
+            }
+
+            private listen() {
+                if (this.mode === 'history') {
+                    window.addEventListener('popstate', (event) => {
+                        this.handleRoute(location.pathname);
+                    });
+                } else {
+                    window.addEventListener('hashchange', (event) => {
+                        this.handleRoute(location.hash.slice(1));
+                    });
+                }
+            }
+
+            public addRoute(path: string, handler: RouteHandler): Router {
+                this.routes.push({ path, handler });
+                return this;
+            }
+
+            public navigate(path: string) {
+                if (!this.isSafeUrl(path)) {
+                    console.error('Unsafe URL, navigation aborted');
+                    return;
+                }
+                if (this.mode === 'history') {
+                    history.pushState(null, '', path);
+                    this.handleRoute(path);
+                } else {
+                    location.hash = path;
+                }
+            }
+
+            private async handleRoute(path: string) {
+                const route = this.routes.find(route => route.path === path);
+                if (route) {
+                    try {
+                        await route.handler();
+                    } catch (error) {
+                        console.error(`Error while handling route: ${error}`);
+                    }
+                } else {
+                    console.error(`Route not found: ${path}`);
+                }
+            }
+
+            private isSafeUrl(url: string): boolean {
+                const pattern = /^(\/|#\/)[\w\-\/]*$/;
+                return pattern.test(url);
+            }
+
+            public start() {
+                const path = this.mode === 'history' ? location.pathname : location.hash.slice(1);
+                this.handleRoute(path);
+            }
+        }
+
+        const contentDiv = document.getElementById('content') as HTMLElement;
+
+        const router = new Router('history');
+
+        router
+            .addRoute('/', async () => {
+                contentDiv.innerHTML = '<h1>Home</h1><p>Welcome to the home page!</p>';
             })
-        });
-      }
+            .addRoute('/about', async () => {
+                contentDiv.innerHTML = '<h1>About</h1><p>This is the about page.</p>';
+            })
+            .addRoute('/contact', async () => {
+                contentDiv.innerHTML = '<h1>Contact</h1><p>Get in touch with us through the contact page.</p>';
+            });
+
+        router.start();
+
+        document.getElementById('home-link')?.addEventListener('click', () => router.navigate('/'));
+        document.getElementById('about-link')?.addEventListener('click', () => router.navigate('/about'));
+        document.getElementById('contact-link')?.addEventListener('click', () => router.navigate('/contact'));
     </script>
-  </body>
+</body>
 </html>
