@@ -65,6 +65,3 @@ promiseDom.ready.then(() => {
 });
 
 
-import spx from 'spx';
-
-spx.connect({});
