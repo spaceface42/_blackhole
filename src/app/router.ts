@@ -85,7 +85,7 @@ router
     })
     .addRoute('/contact', async () => {
         contentDiv.innerHTML = '<h1>Contact</h1><p>Loading contact information...</p>';
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate async operation
+        await new Promise(resolve => setTimeout(resolve, 4000)); // Simulate async operation
         contentDiv.innerHTML += '<p>Contact info loaded.</p>';
     })
     .addRoute('/data', async () => {
