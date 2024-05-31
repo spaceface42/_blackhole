@@ -26,26 +26,16 @@
         <!-- Content will be loaded here based on the route -->
     </div>
 
-    <script type="module">
-        type RouteHandler = () => Promise<void>;
-
-        interface Route {
-            path: string;
-            handler: RouteHandler;
-        }
-
+    <script>
         class Router {
-            private routes: Route[] = [];
-            private mode: 'history' | 'hash';
-            private root: string;
-
-            constructor(mode: 'history' | 'hash' = 'history', root: string = '/') {
+            constructor(mode = 'history', root = '/') {
+                this.routes = [];
                 this.mode = mode;
                 this.root = root;
                 this.listen();
             }
 
-            private listen() {
+            listen() {
                 if (this.mode === 'history') {
                     window.addEventListener('popstate', (event) => {
                         this.handleRoute(location.pathname);
@@ -57,12 +47,12 @@
                 }
             }
 
-            public addRoute(path: string, handler: RouteHandler): Router {
+            addRoute(path, handler) {
                 this.routes.push({ path, handler });
                 return this;
             }
 
-            public navigate(path: string) {
+            navigate(path) {
                 if (!this.isSafeUrl(path)) {
                     console.error('Unsafe URL, navigation aborted');
                     return;
@@ -75,7 +65,7 @@
                 }
             }
 
-            private async handleRoute(path: string) {
+            async handleRoute(path) {
                 const route = this.routes.find(route => route.path === path);
                 if (route) {
                     try {
@@ -88,18 +78,18 @@
                 }
             }
 
-            private isSafeUrl(url: string): boolean {
+            isSafeUrl(url) {
                 const pattern = /^(\/|#\/)[\w\-\/]*$/;
                 return pattern.test(url);
             }
 
-            public start() {
+            start() {
                 const path = this.mode === 'history' ? location.pathname : location.hash.slice(1);
                 this.handleRoute(path);
             }
         }
 
-        const contentDiv = document.getElementById('content') as HTMLElement;
+        const contentDiv = document.getElementById('content');
 
         const router = new Router('history');
 
