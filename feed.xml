@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+    <title>_blackhole</title>
+    <link href="https://spaceface42.github.io/_blackhole/feed.xml" rel="self" />
+    <link href="https://spaceface42.github.io/_blackhole" />
+    <updated>2024-06-03T14:23:28+02:00</updated>
+    <author>
+        <name>spaceface</name>
+    </author>
+    <id>https://spaceface42.github.io/_blackhole</id>
+
+    <entry>
+        <title>_blackhole</title>
+        <author>
+            <name>spaceface</name>
+        </author>
+        <link href="https://spaceface42.github.io/_blackhole/_blackhole/"/>
+        <id>https://spaceface42.github.io/_blackhole/_blackhole/</id>
+        <media:content url="https://spaceface42.github.io/_blackhole/media/posts/1/placeholder.jpg" medium="image" />
+
+        <updated>2024-05-27T10:03:18+02:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://spaceface42.github.io/_blackhole/media/posts/1/placeholder.jpg" alt="" />
+                    Lorem ipsum dolor sit amet consectetur, adipisicing elit. Laboriosam consequuntur nobis perspiciatis iste tempora consequatur nesciunt delectus molestiae ut placeat reprehenderit facilis incidunt doloremque amet&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <p><img src="https://spaceface42.github.io/_blackhole/media/posts/1/placeholder.jpg" class="type:primaryImage" alt="" /></p>
+                
+  <p>
+    Lorem ipsum dolor sit amet consectetur, adipisicing elit. Laboriosam consequuntur nobis perspiciatis iste tempora consequatur nesciunt delectus molestiae ut placeat reprehenderit facilis incidunt doloremque amet necessitatibus odit quisquam labore magnam non, dolore voluptate accusantium quia dignissimos. Non rem consequatur, ab magnam ad ipsam incidunt!
+  </p>
+
+  <p>
+    
+  </p>
+            ]]>
+        </content>
+    </entry>
+</feed>

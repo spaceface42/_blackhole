@@ -1,0 +1,28 @@
+{
+    "version": "https://jsonfeed.org/version/1",
+    "title": "_blackhole",
+    "description": "",
+    "home_page_url": "https://spaceface42.github.io/_blackhole",
+    "feed_url": "https://spaceface42.github.io/_blackhole/feed.json",
+    "user_comment": "",
+    "author": {
+        "name": "spaceface"
+    },
+    "items": [
+        {
+            "id": "https://spaceface42.github.io/_blackhole/_blackhole/",
+            "url": "https://spaceface42.github.io/_blackhole/_blackhole/",
+            "title": "_blackhole",
+            "summary": "Lorem ipsum dolor sit amet consectetur, adipisicing elit. Laboriosam consequuntur nobis perspiciatis iste tempora consequatur nesciunt delectus molestiae ut placeat reprehenderit facilis incidunt doloremque amet&hellip;",
+            "content_html": "\n  <p>\n    Lorem ipsum dolor sit amet consectetur, adipisicing elit. Laboriosam consequuntur nobis perspiciatis iste tempora consequatur nesciunt delectus molestiae ut placeat reprehenderit facilis incidunt doloremque amet necessitatibus odit quisquam labore magnam non, dolore voluptate accusantium quia dignissimos. Non rem consequatur, ab magnam ad ipsam incidunt!\n  </p>\n\n  <p>\n    \n  </p>",
+            "image": "https://spaceface42.github.io/_blackhole/media/posts/1/placeholder.jpg",
+            "author": {
+                "name": "spaceface"
+            },
+            "tags": [
+            ],
+            "date_published": "2024-05-27T10:03:18+02:00",
+            "date_modified": "2024-06-03T14:23:28+02:00"
+        }
+    ]
+}
