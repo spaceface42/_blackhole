@@ -3,12 +3,40 @@
     <title>spaceface-demo-database</title>
     <link href="https://spaceface42.github.io/_blackhole/feed.xml" rel="self" />
     <link href="https://spaceface42.github.io/_blackhole" />
-    <updated>2026-01-26T12:01:57+01:00</updated>
+    <updated>2026-01-26T13:54:40+01:00</updated>
     <author>
         <name>spaceface</name>
     </author>
     <id>https://spaceface42.github.io/_blackhole</id>
 
+    <entry>
+        <title>post two</title>
+        <author>
+            <name>spaceface</name>
+        </author>
+        <link href="https://spaceface42.github.io/_blackhole/post-two.html"/>
+        <id>https://spaceface42.github.io/_blackhole/post-two.html</id>
+
+        <updated>2026-01-26T13:40:31+01:00</updated>
+            <summary type="html">
+                <![CDATA[
+                    powt two
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                
+  <p>
+    powt two
+  </p>
+
+    <figure class="post__image post__image--center">
+      <img loading="lazy" src="https://spaceface42.github.io/_blackhole/media/posts/4/Screenshot-2026-01-21-at-15.38.21.png" height="1264" width="1126" alt=""  sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://spaceface42.github.io/_blackhole/media/posts/4/responsive/Screenshot-2026-01-21-at-15.38.21-xs.png 640w ,https://spaceface42.github.io/_blackhole/media/posts/4/responsive/Screenshot-2026-01-21-at-15.38.21-sm.png 768w ,https://spaceface42.github.io/_blackhole/media/posts/4/responsive/Screenshot-2026-01-21-at-15.38.21-md.png 1024w ,https://spaceface42.github.io/_blackhole/media/posts/4/responsive/Screenshot-2026-01-21-at-15.38.21-lg.png 1366w ,https://spaceface42.github.io/_blackhole/media/posts/4/responsive/Screenshot-2026-01-21-at-15.38.21-xl.png 1600w ,https://spaceface42.github.io/_blackhole/media/posts/4/responsive/Screenshot-2026-01-21-at-15.38.21-2xl.png 1920w">
+      
+    </figure>
+            ]]>
+        </content>
+    </entry>
     <entry>
         <title>hello world</title>
         <author>
