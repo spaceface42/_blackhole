@@ -1,0 +1,57 @@
+{
+  "meta": {
+    "version": 1,
+    "pages": [
+      {
+        "id": "fdgsdfg",
+        "slug": "sdfg",
+        "type": "page",
+        "title": "sdfg",
+        "subtitle": "sdfg",
+        "published": true,
+        "order": 1,
+        "file": "data/pages/fdgsdfg.json",
+        "updatedAt": "2026-06-01T13:27:06.568Z"
+      },
+      {
+        "id": "dsfgdfgdfgdfsgf",
+        "slug": "fdsgdsfgdsfg",
+        "type": "page",
+        "title": "dsfgfsdg",
+        "subtitle": "sdfgdfsg",
+        "published": true,
+        "order": 2,
+        "file": "data/pages/dsfgdfgdfgdfsgf.json",
+        "updatedAt": "2026-06-01T13:27:17.853Z"
+      }
+    ]
+  },
+  "pages": {
+    "fdgsdfg": {
+      "id": "fdgsdfg",
+      "slug": "sdfg",
+      "type": "page",
+      "title": "sdfg",
+      "subtitle": "sdfg",
+      "body": "sdfgdfsg",
+      "coverImage": null,
+      "images": [],
+      "published": true,
+      "createdAt": "2026-06-01T13:27:06.568Z",
+      "updatedAt": "2026-06-01T13:27:06.568Z"
+    },
+    "dsfgdfgdfgdfsgf": {
+      "id": "dsfgdfgdfgdfsgf",
+      "slug": "fdsgdsfgdsfg",
+      "type": "page",
+      "title": "dsfgfsdg",
+      "subtitle": "sdfgdfsg",
+      "body": "fdsgsdfgdfgdfsgdfgdfgdfg",
+      "coverImage": null,
+      "images": [],
+      "published": true,
+      "createdAt": "2026-06-01T13:27:17.853Z",
+      "updatedAt": "2026-06-01T13:27:17.853Z"
+    }
+  }
+}
