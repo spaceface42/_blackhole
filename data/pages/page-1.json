@@ -1,0 +1,13 @@
+{
+  "id": "page-1",
+  "slug": "page-1",
+  "type": "page",
+  "title": "Hello World",
+  "subtitle": "well this is the first page",
+  "body": "with text content",
+  "coverImage": null,
+  "images": [],
+  "published": true,
+  "createdAt": "2026-06-01T09:39:45.312Z",
+  "updatedAt": "2026-06-01T09:39:45.312Z"
+}
