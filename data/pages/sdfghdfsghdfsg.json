@@ -1,0 +1,18 @@
+{
+  "id": "sdfghdfsghdfsg",
+  "slug": "sdfgsdfgfdsg",
+  "type": "page",
+  "title": "sdfgsdfgdfs",
+  "subtitle": "gsdfgsdfgdfs",
+  "body": "gsdfgsdfgdfsgdsfgsdfg",
+  "coverImage": {
+    "id": "cover",
+    "src": "data/assets/sdfghdfsghdfsg/cover.gif",
+    "alt": "",
+    "caption": ""
+  },
+  "images": [],
+  "published": true,
+  "createdAt": "2026-06-01T10:06:56.410Z",
+  "updatedAt": "2026-06-01T10:06:56.410Z"
+}
