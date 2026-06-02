@@ -11,17 +11,6 @@
       "order": 1,
       "file": "data/pages/1.json",
       "updatedAt": "2026-06-01T13:55:10.059Z"
-    },
-    {
-      "id": "2",
-      "slug": "other-page",
-      "type": "page",
-      "title": "other-page title",
-      "subtitle": "other-page subtitle",
-      "published": true,
-      "order": 2,
-      "file": "data/pages/2.json",
-      "updatedAt": "2026-06-01T13:55:43.841Z"
     }
   ]
 }
