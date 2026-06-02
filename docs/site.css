@@ -44,3 +44,12 @@ article p {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   margin: 24px 0;
 }
+
+.database-list {
+  line-height: 1.8;
+  padding-left: 20px;
+}
+
+.database-list a {
+  color: #126a5f;
+}

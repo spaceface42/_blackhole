@@ -138,6 +138,7 @@ function renderField(record, field) {
 function loadDatabase() {
   const meta = readJson(metaPath);
   const records = new Map();
+  const pages = [];
 
   for (const item of meta.pages || []) {
     if (item.published === false) {
@@ -152,16 +153,56 @@ function loadDatabase() {
     }
 
     const page = readJson(pagePath);
-    records.set(page.id, page);
-    records.set(page.slug, page);
+    const record = { ...page, order: item.order ?? pages.length + 1 };
+    pages.push(record);
+    records.set(record.id, record);
+    records.set(record.slug, record);
   }
 
-  return records;
+  return { records, pages };
 }
 
-function replaceDatabaseTags(html, records) {
+function recordHref(record, attributes = {}) {
+  return attributes.href || record.url || `${record.slug || record.id}.html`;
+}
+
+function renderDatabaseLink(record, attributes = {}) {
+  if (!record) {
+    return "";
+  }
+
+  const field = attributes.field || "title";
+  const label = renderField(record, field);
+
+  return `<a href="${escapeHtml(recordHref(record, attributes))}">${label}</a>`;
+}
+
+function renderDatabaseList(pages, attributes = {}) {
+  const type = attributes.type || "";
+  const field = attributes.field || "title";
+  const items = pages
+    .filter((page) => !type || page.type === type)
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  if (items.length === 0) {
+    return "";
+  }
+
+  return [
+    '<ul class="database-list">',
+    ...items.map((record) => `<li>${renderDatabaseLink(record, { ...attributes, field })}</li>`),
+    "</ul>"
+  ].join("\n");
+}
+
+function replaceDatabaseTags(html, database) {
+  const { records, pages } = database;
   const pairedTag = /<database\b([^>]*)><\/database>/gi;
   const selfClosingTag = /<database\b([^>]*)\/>/gi;
+  const linkPairedTag = /<database-link\b([^>]*)><\/database-link>/gi;
+  const linkSelfClosingTag = /<database-link\b([^>]*)\/>/gi;
+  const listPairedTag = /<database-list\b([^>]*)><\/database-list>/gi;
+  const listSelfClosingTag = /<database-list\b([^>]*)\/>/gi;
 
   const replaceTag = (_match, rawAttributes) => {
     const attributes = parseAttributes(rawAttributes);
@@ -171,15 +212,26 @@ function replaceDatabaseTags(html, records) {
     return renderField(record, field);
   };
 
+  const replaceLink = (_match, rawAttributes) => {
+    const attributes = parseAttributes(rawAttributes);
+    return renderDatabaseLink(records.get(attributes.id), attributes);
+  };
+
+  const replaceList = (_match, rawAttributes) => renderDatabaseList(pages, parseAttributes(rawAttributes));
+
   return html
+    .replace(listPairedTag, replaceList)
+    .replace(listSelfClosingTag, replaceList)
+    .replace(linkPairedTag, replaceLink)
+    .replace(linkSelfClosingTag, replaceLink)
     .replace(pairedTag, replaceTag)
     .replace(selfClosingTag, replaceTag);
 }
 
-function processHtmlFiles(records) {
+function processHtmlFiles(database) {
   for (const filePath of findFiles(outputDir, ".html")) {
     const html = fs.readFileSync(filePath, "utf8");
-    fs.writeFileSync(filePath, replaceDatabaseTags(html, records));
+    fs.writeFileSync(filePath, replaceDatabaseTags(html, database));
   }
 }
 

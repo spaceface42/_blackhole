@@ -60,6 +60,8 @@ More examples:
 <database id="1" field="body"></database>
 <database id="1" field="coverImage"></database>
 <database id="1" field="images"></database>
+<database-list type="page"></database-list>
+<database-link id="1"></database-link>
 ```
 
 The `id` can be a page ID or slug. The `field` selects which record value to render.
@@ -69,6 +71,8 @@ Special rendering:
 - `body` becomes escaped paragraphs.
 - `coverImage` becomes a figure with an image.
 - `images` becomes a simple gallery.
+- `database-list` renders links to published records.
+- `database-link` renders one link to a record.
 
 ## Data Layout
 
