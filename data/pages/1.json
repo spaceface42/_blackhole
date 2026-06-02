@@ -1,0 +1,13 @@
+{
+  "id": "1",
+  "slug": "hello-world",
+  "type": "page",
+  "title": "hello-world",
+  "subtitle": "well hello again",
+  "body": "This page is generated from JSON data using database tags in public.source/index.html.",
+  "coverImage": null,
+  "images": [],
+  "published": true,
+  "createdAt": "2026-06-01T13:55:10.059Z",
+  "updatedAt": "2026-06-01T13:55:10.059Z"
+}

@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "name": "Blackhole Site",
+  "paths": {
+    "meta": "data/meta.json",
+    "pages": "data/pages",
+    "assets": "data/assets",
+    "source": "public.source",
+    "output": "docs"
+  },
+  "contentTypes": [
+    {
+      "type": "page",
+      "label": "Page",
+      "fields": [
+        "title",
+        "subtitle",
+        "body",
+        "coverImage",
+        "images"
+      ]
+    },
+    {
+      "type": "gallery",
+      "label": "Gallery",
+      "fields": [
+        "title",
+        "subtitle",
+        "coverImage",
+        "images"
+      ]
+    }
+  ],
+  "build": {
+    "command": "npm run build",
+    "output": "docs"
+  }
+}

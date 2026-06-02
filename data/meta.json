@@ -2,37 +2,26 @@
   "version": 1,
   "pages": [
     {
-      "id": "page-1",
-      "slug": "page-1",
+      "id": "1",
+      "slug": "hello-world",
       "type": "page",
-      "title": "Hello World",
-      "subtitle": "well this is the first page",
+      "title": "hello-world",
+      "subtitle": "well hello again",
       "published": true,
       "order": 1,
-      "file": "data/pages/page-1.json",
-      "updatedAt": "2026-06-01T09:39:45.312Z"
+      "file": "data/pages/1.json",
+      "updatedAt": "2026-06-01T13:55:10.059Z"
     },
     {
-      "id": "sdfgdfsg",
-      "slug": "dsfgsdfg",
+      "id": "2",
+      "slug": "other-page",
       "type": "page",
-      "title": "sdfgsdfg",
-      "subtitle": "sdfgsdfg",
+      "title": "other-page title",
+      "subtitle": "other-page subtitle",
       "published": true,
       "order": 2,
-      "file": "data/pages/sdfgdfsg.json",
-      "updatedAt": "2026-06-01T10:06:31.859Z"
-    },
-    {
-      "id": "sdfghdfsghdfsg",
-      "slug": "sdfgsdfgfdsg",
-      "type": "page",
-      "title": "sdfgsdfgdfs",
-      "subtitle": "gsdfgsdfgdfs",
-      "published": true,
-      "order": 3,
-      "file": "data/pages/sdfghdfsghdfsg.json",
-      "updatedAt": "2026-06-01T10:06:56.410Z"
+      "file": "data/pages/2.json",
+      "updatedAt": "2026-06-01T13:55:43.841Z"
     }
   ]
 }
