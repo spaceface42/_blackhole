@@ -111,3 +111,25 @@ Later version:
 1. Add GitHub Actions.
 2. Let Actions run `npm run build` after admin saves JSON.
 3. Deploy the generated `docs/` automatically.
+
+## Automatic Docs Build
+
+This repository includes a GitHub Actions workflow:
+
+```txt
+.github/workflows/build-docs.yml
+```
+
+When the admin saves JSON or assets to `data/`, the workflow runs:
+
+```sh
+npm run build
+```
+
+If `docs/` changes, the workflow commits the regenerated files back to `main`.
+
+For GitHub Pages, configure this repository to publish from:
+
+```txt
+main branch / docs folder
+```

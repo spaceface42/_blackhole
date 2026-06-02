@@ -1,0 +1,51 @@
+name: Build docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "admin.config.json"
+      - "data/**"
+      - "package.json"
+      - "public.source/**"
+      - "scripts/**"
+      - ".github/workflows/build-docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-docs:
+    if: ${{ !contains(github.event.head_commit.message, "[skip docs build]") }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build docs
+        run: npm run build
+
+      - name: Commit generated docs
+        run: |
+          if [ -z "$(git status --porcelain docs)" ]; then
+            echo "docs/ is already up to date."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          git commit -m "Build docs [skip docs build]"
+          git push
