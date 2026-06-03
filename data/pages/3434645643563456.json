@@ -1,8 +1,8 @@
 {
   "id": "3434645643563456",
   "slug": "work",
-  "type": "page",
-  "template": "",
+  "type": "gallery",
+  "template": "gallery",
   "title": "work",
   "subtitle": "work",
   "body": "work here",
@@ -15,5 +15,5 @@
   "images": [],
   "published": true,
   "createdAt": "2026-06-02T14:55:44.462Z",
-  "updatedAt": "2026-06-03T09:13:30.995Z"
+  "updatedAt": "2026-06-03T09:15:17.028Z"
 }
