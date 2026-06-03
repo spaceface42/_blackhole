@@ -13,7 +13,7 @@ The source of truth is `admin.config.json`. Its main shape is:
     "pages": "data/pages",
     "assets": "data/assets",
     "source": "public.source",
-    "output": "docs"
+    "output": "_docs"
   },
   "site": {
     "previewUrl": "https://spaceface42.github.io/_blackhole/"
@@ -38,7 +38,7 @@ The source of truth is `admin.config.json`. Its main shape is:
   ],
   "build": {
     "command": "npm run build",
-    "output": "docs"
+    "output": "_docs"
   }
 }
 ```
@@ -49,7 +49,7 @@ The source of truth is `admin.config.json`. Its main shape is:
 - `paths.pages`: folder for individual page records.
 - `paths.assets`: folder for uploaded images and other files.
 - `paths.source`: source HTML/CSS folder used by the static build.
-- `paths.output`: generated GitHub Pages folder.
+- `paths.output`: generated build output folder.
 
 ## Content Types
 
@@ -83,4 +83,4 @@ The admin uses labels, required fields, upload limits, and preview URL now. The 
 npm run build
 ```
 
-The browser admin does not run this command. It only edits data. The build should be run locally or by GitHub Actions.
+The browser admin does not run this command. It only edits data. GitHub Actions runs the build and deploys the generated `_docs/` folder to GitHub Pages.

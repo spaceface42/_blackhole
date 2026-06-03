@@ -6,7 +6,7 @@
     "pages": "data/pages",
     "assets": "data/assets",
     "source": "public.source",
-    "output": "docs"
+    "output": "_docs"
   },
   "site": {
     "previewUrl": "https://spaceface42.github.io/_blackhole/"
@@ -83,6 +83,6 @@
   ],
   "build": {
     "command": "npm run build",
-    "output": "docs"
+    "output": "_docs"
   }
 }

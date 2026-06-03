@@ -1,4 +1,4 @@
-name: Build docs
+name: Build and deploy site
 
 on:
   push:
@@ -14,15 +14,20 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: build-docs-main
+  group: pages-main
   cancel-in-progress: true
 
 jobs:
-  build-docs:
+  build-site:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout
@@ -33,18 +38,17 @@ jobs:
         with:
           node-version: 22
 
-      - name: Build docs
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build site
         run: npm run build
 
-      - name: Commit generated docs
-        run: |
-          if [ -z "$(git status --porcelain docs)" ]; then
-            echo "docs/ is already up to date."
-            exit 0
-          fi
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _docs
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs
-          git commit -m "Build docs [skip docs build]"
-          git push
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

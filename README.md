@@ -5,8 +5,8 @@ This is the administered static site repository.
 - `admin.config.json` tells the separate admin app where content lives.
 - `data/` contains JSON page records and uploaded assets.
 - `public.source/` contains editable HTML/CSS source files.
-- `scripts/build-site.js` copies `public.source/` to `docs/` and replaces `<database>` tags with JSON data.
-- `docs/` is the generated GitHub Pages output.
+- `scripts/build-site.js` copies `public.source/` to `_docs/` and replaces `<database>` tags with JSON data.
+- `_docs/` is the generated build output. It is deployed by GitHub Actions, not committed.
 
 ## Admin Connection
 
@@ -38,10 +38,10 @@ npm run build
 This regenerates:
 
 ```txt
-docs/
+_docs/
 ```
 
-GitHub Pages can publish from the `docs/` folder on the `main` branch.
+Local builds are for preview/debugging. The normal publishing flow is GitHub Actions building `_docs/` and deploying it to GitHub Pages.
 
 ## Database Tags
 
@@ -102,19 +102,11 @@ Example:
 }
 ```
 
-## Publishing Options
+## Publishing
 
-Simple first version:
+The repository stores source files only: JSON data, uploaded assets, templates, and the build script.
 
-1. Let GitHub Pages publish from `main` branch, `/docs` folder.
-2. After editing content, run `npm run build`.
-3. Commit and push the updated `docs/`.
-
-Later version:
-
-1. Add GitHub Actions.
-2. Let Actions run `npm run build` after admin saves JSON.
-3. Deploy the generated `docs/` automatically.
+When changes are pushed to `main`, GitHub Actions runs `npm run build`, creates `_docs/` inside the workflow runner, uploads that folder as a GitHub Pages artifact, and deploys it. Generated HTML does not need to be committed.
 
 ## Automatic Docs Build
 
@@ -130,10 +122,8 @@ When the admin saves JSON or assets to `data/`, the workflow runs:
 npm run build
 ```
 
-If `docs/` changes, the workflow commits the regenerated files back to `main`.
-
 For GitHub Pages, configure this repository to publish from:
 
 ```txt
-main branch / docs folder
+GitHub Actions
 ```

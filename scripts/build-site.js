@@ -3,7 +3,7 @@ const path = require("path");
 
 const rootDir = path.resolve(__dirname, "..");
 const sourceDir = path.join(rootDir, "public.source");
-const outputDir = path.join(rootDir, "docs");
+const outputDir = path.join(rootDir, "_docs");
 const dataDir = path.join(rootDir, "data");
 const metaPath = path.join(dataDir, "meta.json");
 
