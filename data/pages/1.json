@@ -2,6 +2,7 @@
   "id": "1",
   "slug": "index-page",
   "type": "page",
+  "template": "",
   "title": "hello world again",
   "subtitle": "hello world again",
   "body": "This page is generated from JSON data using database tags in public.source/index.html.\n\nhello world again",

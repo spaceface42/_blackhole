@@ -2,12 +2,18 @@
   "id": "3434645643563456",
   "slug": "work",
   "type": "page",
+  "template": "",
   "title": "work",
   "subtitle": "work",
   "body": "work here",
-  "coverImage": null,
+  "coverImage": {
+    "id": "cover",
+    "src": "data/assets/3434645643563456/cover.png",
+    "alt": "",
+    "caption": ""
+  },
   "images": [],
   "published": true,
   "createdAt": "2026-06-02T14:55:44.462Z",
-  "updatedAt": "2026-06-03T07:58:52.181Z"
+  "updatedAt": "2026-06-03T09:13:30.995Z"
 }

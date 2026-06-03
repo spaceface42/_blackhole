@@ -1,20 +1,3 @@
 {
-  "main": [
-    {
-      "label": "Home",
-      "href": "index.html"
-    },
-    {
-      "label": "Work",
-      "page": "work"
-    },
-    {
-      "label": "About",
-      "page": "about"
-    },
-    {
-      "label": "Contact",
-      "page": "contact"
-    }
-  ]
+  "main": []
 }
