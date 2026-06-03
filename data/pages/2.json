@@ -1,0 +1,13 @@
+{
+  "id": "2",
+  "slug": "other-page",
+  "type": "page",
+  "title": "other-page title",
+  "subtitle": "other-page subtitle",
+  "body": "This is another JSON-backed page record.",
+  "coverImage": null,
+  "images": [],
+  "published": true,
+  "createdAt": "2026-06-01T13:55:43.841Z",
+  "updatedAt": "2026-06-01T13:55:43.841Z"
+}
