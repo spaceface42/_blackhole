@@ -5,12 +5,12 @@
       "id": "1",
       "slug": "index-page",
       "type": "page",
-      "title": "index-page",
-      "subtitle": "index-page",
+      "title": "hello world again",
+      "subtitle": "hello world again",
       "published": true,
       "order": 1,
       "file": "data/pages/1.json",
-      "updatedAt": "2026-06-03T07:58:27.965Z"
+      "updatedAt": "2026-06-03T08:37:37.366Z"
     },
     {
       "id": "3434645643563456",
