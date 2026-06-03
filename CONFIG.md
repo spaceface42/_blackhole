@@ -84,3 +84,5 @@ npm run build
 ```
 
 The browser admin does not run this command. It only edits data. GitHub Actions runs the build and deploys the generated `_docs/` folder to GitHub Pages.
+
+In GitHub Pages settings, the publish source should be `GitHub Actions`, which means the workflow output is published directly instead of a repo folder like `docs/`.

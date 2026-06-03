@@ -108,6 +108,9 @@ The repository stores source files only: JSON data, uploaded assets, templates, 
 
 When changes are pushed to `main`, GitHub Actions runs `npm run build`, creates `_docs/` inside the workflow runner, uploads that folder as a GitHub Pages artifact, and deploys it. Generated HTML does not need to be committed.
 
+In GitHub Pages settings, the publish source should be `GitHub Actions`.
+That means GitHub publishes the result of the workflow, not a folder in the repo such as `docs/`.
+
 ## Automatic Docs Build
 
 This repository includes a GitHub Actions workflow:
