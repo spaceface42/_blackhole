@@ -6,6 +6,9 @@ const sourceDir = path.join(rootDir, "public.source");
 const outputDir = path.join(rootDir, "_docs");
 const dataDir = path.join(rootDir, "data");
 const metaPath = path.join(dataDir, "meta.json");
+const navigationPath = path.join(dataDir, "navigation.json");
+const templatesDir = path.join(sourceDir, "templates");
+const partialsDir = path.join(sourceDir, "partials");
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -115,6 +118,14 @@ function renderGallery(images) {
   ].join("\n");
 }
 
+function loadNavigation() {
+  if (!fs.existsSync(navigationPath)) {
+    return {};
+  }
+
+  return readJson(navigationPath);
+}
+
 function renderField(record, field) {
   if (!record) {
     return "";
@@ -159,7 +170,7 @@ function loadDatabase() {
     records.set(record.slug, record);
   }
 
-  return { records, pages };
+  return { records, pages, navigation: loadNavigation() };
 }
 
 function outputFileNameForPage(page) {
@@ -205,8 +216,52 @@ function renderDatabaseList(pages, attributes = {}) {
   ].join("\n");
 }
 
+function renderMenuItems(database, attributes = {}) {
+  const name = attributes.name || "main";
+  const items = Array.isArray(database.navigation?.[name]) ? database.navigation[name] : [];
+
+  if (items.length === 0) {
+    return "";
+  }
+
+  return [
+    '<ul class="site-menu-items">',
+    ...items.map((item) => {
+      const record = item.page ? database.records.get(item.page) : null;
+      const href = item.href || (record ? recordHref(record) : "#");
+      const label = item.label || record?.title || href;
+
+      return `<li><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></li>`;
+    }),
+    "</ul>"
+  ].join("\n");
+}
+
+function readPartial(name) {
+  const safeName = String(name || "")
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, "");
+
+  if (!safeName) {
+    return "";
+  }
+
+  const partialPath = path.join(partialsDir, `${safeName}.html`);
+
+  if (!fs.existsSync(partialPath)) {
+    console.warn(`Missing partial: ${safeName}`);
+    return "";
+  }
+
+  return fs.readFileSync(partialPath, "utf8");
+}
+
 function replaceDatabaseTags(html, database, currentRecord = null) {
   const { records, pages } = database;
+  const partialPairedTag = /<partial\b([^>]*)><\/partial>/gi;
+  const partialSelfClosingTag = /<partial\b([^>]*)\/>/gi;
+  const menuPairedTag = /<site-menu-items\b([^>]*)><\/site-menu-items>/gi;
+  const menuSelfClosingTag = /<site-menu-items\b([^>]*)\/>/gi;
   const pairedTag = /<database\b([^>]*)><\/database>/gi;
   const selfClosingTag = /<database\b([^>]*)\/>/gi;
   const linkPairedTag = /<database-link\b([^>]*)><\/database-link>/gi;
@@ -227,9 +282,20 @@ function replaceDatabaseTags(html, database, currentRecord = null) {
     return renderDatabaseLink(records.get(attributes.id), attributes);
   };
 
+  const replacePartial = (_match, rawAttributes) => {
+    const attributes = parseAttributes(rawAttributes);
+    return replaceDatabaseTags(readPartial(attributes.name), database, currentRecord);
+  };
+
+  const replaceMenuItems = (_match, rawAttributes) => renderMenuItems(database, parseAttributes(rawAttributes));
+
   const replaceList = (_match, rawAttributes) => renderDatabaseList(pages, parseAttributes(rawAttributes));
 
   return html
+    .replace(partialPairedTag, replacePartial)
+    .replace(partialSelfClosingTag, replacePartial)
+    .replace(menuPairedTag, replaceMenuItems)
+    .replace(menuSelfClosingTag, replaceMenuItems)
     .replace(listPairedTag, replaceList)
     .replace(listSelfClosingTag, replaceList)
     .replace(linkPairedTag, replaceLink)
@@ -245,24 +311,42 @@ function processHtmlFiles(database) {
   }
 }
 
-function generatePageFiles(database) {
-  const templatePath = path.join(outputDir, "index.html");
+function templateNameForPage(page) {
+  return String(page.template || page.type || "page")
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, "") || "page";
+}
 
-  if (!fs.existsSync(templatePath)) {
-    return;
+function readTemplate(name) {
+  const templatePath = path.join(templatesDir, `${name}.html`);
+
+  if (fs.existsSync(templatePath)) {
+    return fs.readFileSync(templatePath, "utf8");
   }
 
-  const template = fs.readFileSync(templatePath, "utf8");
+  if (name !== "page") {
+    console.warn(`Missing template: ${name}.html. Falling back to page.html.`);
+    return readTemplate("page");
+  }
 
-  database.pages.forEach((page, index) => {
+  throw new Error("Missing required template: public.source/templates/page.html");
+}
+
+function generatePageFiles(database) {
+  const homeTemplate = readTemplate("home");
+  const homeRecord = database.pages[0] || null;
+
+  fs.writeFileSync(
+    path.join(outputDir, "index.html"),
+    replaceDatabaseTags(homeTemplate, database, homeRecord)
+  );
+
+  database.pages.forEach((page) => {
+    const template = readTemplate(templateNameForPage(page));
     const outputHtml = replaceDatabaseTags(template, database, page);
     const outputPath = path.join(outputDir, outputFileNameForPage(page));
 
     fs.writeFileSync(outputPath, outputHtml);
-
-    if (index === 0) {
-      fs.writeFileSync(templatePath, outputHtml);
-    }
   });
 }
 
@@ -277,6 +361,8 @@ function build() {
 
   removeDir(outputDir);
   copyDir(sourceDir, outputDir);
+  removeDir(path.join(outputDir, "partials"));
+  removeDir(path.join(outputDir, "templates"));
   copyDir(path.join(dataDir, "assets"), path.join(outputDir, "data/assets"));
   const database = loadDatabase();
   generatePageFiles(database);

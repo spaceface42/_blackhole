@@ -74,11 +74,48 @@ Special rendering:
 - `database-list` renders links to published records.
 - `database-link` renders one link to a record.
 
+## Templates And Navigation
+
+Page templates live in:
+
+```txt
+public.source/templates/
+```
+
+The build chooses a template for each record with this rule:
+
+```txt
+record.template || record.type || "page"
+```
+
+For example, a record with `"type": "gallery"` uses `public.source/templates/gallery.html`. A record can override that by setting `"template": "gallery-grid"`.
+
+Shared HTML lives in:
+
+```txt
+public.source/partials/
+```
+
+Use a partial in a template like this:
+
+```html
+<partial name="menu"></partial>
+```
+
+The main menu is configured in:
+
+```txt
+data/navigation.json
+```
+
+Menu JSON controls labels, order, and targets. Templates and CSS control the menu layout and styling.
+
 ## Data Layout
 
 ```txt
 data/
   meta.json
+  navigation.json
   pages/
     1.json
     2.json

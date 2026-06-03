@@ -10,6 +10,7 @@ The source of truth is `admin.config.json`. Its main shape is:
   "name": "Blackhole Site",
   "paths": {
     "meta": "data/meta.json",
+    "navigation": "data/navigation.json",
     "pages": "data/pages",
     "assets": "data/assets",
     "source": "public.source",
@@ -46,10 +47,15 @@ The source of truth is `admin.config.json`. Its main shape is:
 ## Path Meanings
 
 - `paths.meta`: the JSON index file.
+- `paths.navigation`: editable menu labels, order, and targets.
 - `paths.pages`: folder for individual page records.
 - `paths.assets`: folder for uploaded images and other files.
 - `paths.source`: source HTML/CSS folder used by the static build.
 - `paths.output`: generated build output folder.
+
+Page templates live in `public.source/templates/`. The build chooses a template with `record.template || record.type || "page"`, so a `gallery` record uses `templates/gallery.html` unless the record names a more specific template.
+
+Shared template pieces live in `public.source/partials/`. The main menu is rendered from `data/navigation.json`, which controls labels, order, and targets while CSS controls the visual design.
 
 ## Content Types
 

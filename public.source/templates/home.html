@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><database field="title"></database></title>
+    <link rel="stylesheet" href="site.css">
+  </head>
+  <body>
+    <partial name="menu"></partial>
+
+    <main>
+      <h1><database field="title"></database></h1>
+      <p class="subtitle"><database field="subtitle"></database></p>
+      <database field="coverImage"></database>
+      <article>
+        <database field="body"></database>
+      </article>
+
+      <section aria-labelledby="published-pages">
+        <h2 id="published-pages">Pages</h2>
+        <database-list type="page"></database-list>
+      </section>
+    </main>
+  </body>
+</html>

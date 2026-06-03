@@ -3,6 +3,7 @@
   "name": "Blackhole Site",
   "paths": {
     "meta": "data/meta.json",
+    "navigation": "data/navigation.json",
     "pages": "data/pages",
     "assets": "data/assets",
     "source": "public.source",
@@ -37,6 +38,11 @@
           "type": "text"
         },
         {
+          "name": "template",
+          "label": "Template",
+          "type": "text"
+        },
+        {
           "name": "body",
           "label": "Body",
           "type": "textarea"
@@ -66,6 +72,11 @@
         {
           "name": "subtitle",
           "label": "Subtitle",
+          "type": "text"
+        },
+        {
+          "name": "template",
+          "label": "Template",
           "type": "text"
         },
         {
