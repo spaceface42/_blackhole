@@ -3,47 +3,47 @@
   "pages": [
     {
       "id": "1",
-      "slug": "hello-world",
+      "slug": "index-page",
       "type": "page",
-      "title": "hello-world",
-      "subtitle": "well hello again",
+      "title": "index-page",
+      "subtitle": "index-page",
       "published": true,
       "order": 1,
       "file": "data/pages/1.json",
-      "updatedAt": "2026-06-01T13:55:10.059Z"
+      "updatedAt": "2026-06-03T07:58:27.965Z"
     },
     {
       "id": "3434645643563456",
-      "slug": "34563456345634563456",
+      "slug": "work",
       "type": "page",
-      "title": "34564356",
-      "subtitle": "43563456435",
+      "title": "work",
+      "subtitle": "work",
       "published": true,
       "order": 2,
       "file": "data/pages/3434645643563456.json",
-      "updatedAt": "2026-06-02T14:55:44.462Z"
+      "updatedAt": "2026-06-03T07:58:52.181Z"
     },
     {
       "id": "45364536456",
-      "slug": "34564536",
+      "slug": "about",
       "type": "page",
-      "title": "34564356",
-      "subtitle": "34564356",
+      "title": "about",
+      "subtitle": "about",
       "published": true,
       "order": 3,
       "file": "data/pages/45364536456.json",
-      "updatedAt": "2026-06-02T14:55:52.879Z"
+      "updatedAt": "2026-06-03T07:59:07.049Z"
     },
     {
       "id": "43564356",
-      "slug": "34563456",
+      "slug": "contact",
       "type": "page",
-      "title": "34564356",
-      "subtitle": "43564356",
+      "title": "contact",
+      "subtitle": "contact",
       "published": true,
       "order": 4,
       "file": "data/pages/43564356.json",
-      "updatedAt": "2026-06-02T14:55:59.966Z"
+      "updatedAt": "2026-06-03T07:59:22.948Z"
     }
   ]
 }
