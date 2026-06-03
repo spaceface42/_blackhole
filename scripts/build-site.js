@@ -162,6 +162,16 @@ function loadDatabase() {
   return { records, pages };
 }
 
+function outputFileNameForPage(page) {
+  const slug = String(page.slug || page.id || "page")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return `${slug || page.id || "page"}.html`;
+}
+
 function recordHref(record, attributes = {}) {
   return attributes.href || record.url || `${record.slug || record.id}.html`;
 }
@@ -195,7 +205,7 @@ function renderDatabaseList(pages, attributes = {}) {
   ].join("\n");
 }
 
-function replaceDatabaseTags(html, database) {
+function replaceDatabaseTags(html, database, currentRecord = null) {
   const { records, pages } = database;
   const pairedTag = /<database\b([^>]*)><\/database>/gi;
   const selfClosingTag = /<database\b([^>]*)\/>/gi;
@@ -206,7 +216,7 @@ function replaceDatabaseTags(html, database) {
 
   const replaceTag = (_match, rawAttributes) => {
     const attributes = parseAttributes(rawAttributes);
-    const record = records.get(attributes.id);
+    const record = attributes.id ? records.get(attributes.id) : currentRecord;
     const field = attributes.field || "body";
 
     return renderField(record, field);
@@ -235,6 +245,27 @@ function processHtmlFiles(database) {
   }
 }
 
+function generatePageFiles(database) {
+  const templatePath = path.join(outputDir, "index.html");
+
+  if (!fs.existsSync(templatePath)) {
+    return;
+  }
+
+  const template = fs.readFileSync(templatePath, "utf8");
+
+  database.pages.forEach((page, index) => {
+    const outputHtml = replaceDatabaseTags(template, database, page);
+    const outputPath = path.join(outputDir, outputFileNameForPage(page));
+
+    fs.writeFileSync(outputPath, outputHtml);
+
+    if (index === 0) {
+      fs.writeFileSync(templatePath, outputHtml);
+    }
+  });
+}
+
 function build() {
   if (!fs.existsSync(sourceDir)) {
     throw new Error("Missing public.source directory.");
@@ -247,7 +278,9 @@ function build() {
   removeDir(outputDir);
   copyDir(sourceDir, outputDir);
   copyDir(path.join(dataDir, "assets"), path.join(outputDir, "data/assets"));
-  processHtmlFiles(loadDatabase());
+  const database = loadDatabase();
+  generatePageFiles(database);
+  processHtmlFiles(database);
   console.log(`Built static site in ${path.relative(rootDir, outputDir)}/`);
 }
 
