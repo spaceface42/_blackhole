@@ -33,6 +33,17 @@
       "order": 3,
       "file": "data/pages/about.json",
       "updatedAt": "2026-06-04T00:00:00.000Z"
+    },
+    {
+      "id": "hellp",
+      "slug": "hell-p",
+      "type": "page",
+      "title": "hell(p)",
+      "subtitle": "hell(p)",
+      "published": true,
+      "order": 4,
+      "file": "data/pages/hellp.json",
+      "updatedAt": "2026-06-04T10:55:32.106Z"
     }
   ]
 }
