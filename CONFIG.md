@@ -81,6 +81,8 @@ Fields can be simple strings or metadata objects:
 
 The admin uses labels, required fields, upload limits, and preview URL now. The form layout is still mostly fixed.
 
+The admin also reads and writes `paths.navigation`. For this site that means menu edits are saved in `data/navigation.json` together with page data.
+
 ## Build
 
 `build.command` documents the command that regenerates the public site:

@@ -22,10 +22,13 @@ The admin reads `admin.config.json`, then loads:
 
 ```txt
 data/meta.json
+data/navigation.json
 data/pages/*.json
 ```
 
 When saving, the admin writes JSON files and uploaded images back to this repository.
+
+Open the admin from the `_admin` repository's `index.html` file or its hosted GitHub Pages URL. The site source file `public.source/index.html` is only a local note page for template authors; it is not the admin app.
 
 ## Local Build
 
@@ -109,6 +112,8 @@ data/navigation.json
 ```
 
 Menu JSON controls labels, order, and targets. Templates and CSS control the menu layout and styling.
+
+The admin can edit `data/navigation.json`. A menu item can point to a page slug/id or to a direct URL. Keep design choices such as layout, color, and mobile behavior in templates and CSS rather than in the JSON.
 
 ## Data Layout
 

@@ -11,14 +11,8 @@
       "href": ""
     },
     {
-      "label": "about menu",
-      "page": "about",
-      "href": ""
-    },
-    {
-      "label": "contact menu",
-      "page": "contact",
-      "href": ""
+      "label": "About",
+      "page": "about"
     }
   ]
 }

@@ -1,4 +1,4 @@
-_token.json
-.DS_Store
 _docs/
 docs/
+.DS_Store
+_token.json

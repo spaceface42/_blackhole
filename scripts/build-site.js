@@ -118,14 +118,6 @@ function renderGallery(images) {
   ].join("\n");
 }
 
-function loadNavigation() {
-  if (!fs.existsSync(navigationPath)) {
-    return {};
-  }
-
-  return readJson(navigationPath);
-}
-
 function renderField(record, field) {
   if (!record) {
     return "";
@@ -144,6 +136,14 @@ function renderField(record, field) {
   }
 
   return escapeHtml(record[field] ?? "");
+}
+
+function loadNavigation() {
+  if (!fs.existsSync(navigationPath)) {
+    return {};
+  }
+
+  return readJson(navigationPath);
 }
 
 function loadDatabase() {
@@ -170,7 +170,11 @@ function loadDatabase() {
     records.set(record.slug, record);
   }
 
-  return { records, pages, navigation: loadNavigation() };
+  return {
+    records,
+    pages: pages.sort((a, b) => (a.order || 0) - (b.order || 0)),
+    navigation: loadNavigation()
+  };
 }
 
 function outputFileNameForPage(page) {
@@ -184,7 +188,7 @@ function outputFileNameForPage(page) {
 }
 
 function recordHref(record, attributes = {}) {
-  return attributes.href || record.url || `${record.slug || record.id}.html`;
+  return attributes.href || record.url || outputFileNameForPage(record);
 }
 
 function renderDatabaseLink(record, attributes = {}) {
@@ -201,9 +205,7 @@ function renderDatabaseLink(record, attributes = {}) {
 function renderDatabaseList(pages, attributes = {}) {
   const type = attributes.type || "";
   const field = attributes.field || "title";
-  const items = pages
-    .filter((page) => !type || page.type === type)
-    .sort((a, b) => (a.order || 0) - (b.order || 0));
+  const items = pages.filter((page) => !type || page.type === type);
 
   if (items.length === 0) {
     return "";
@@ -228,7 +230,7 @@ function renderMenuItems(database, attributes = {}) {
     '<ul class="site-menu-items">',
     ...items.map((item) => {
       const record = item.page ? database.records.get(item.page) : null;
-      const href = item.href || (record ? recordHref(record) : "#");
+      const href = item.href || (record ? outputFileNameForPage(record) : "#");
       const label = item.label || record?.title || href;
 
       return `<li><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></li>`;
@@ -238,9 +240,7 @@ function renderMenuItems(database, attributes = {}) {
 }
 
 function readPartial(name) {
-  const safeName = String(name || "")
-    .trim()
-    .replace(/[^a-zA-Z0-9_-]+/g, "");
+  const safeName = String(name || "").trim().replace(/[^a-zA-Z0-9_-]+/g, "");
 
   if (!safeName) {
     return "";
@@ -256,65 +256,38 @@ function readPartial(name) {
   return fs.readFileSync(partialPath, "utf8");
 }
 
-function replaceDatabaseTags(html, database, currentRecord = null) {
+function replaceTemplateTags(html, database, currentRecord = null) {
   const { records, pages } = database;
-  const partialPairedTag = /<partial\b([^>]*)><\/partial>/gi;
-  const partialSelfClosingTag = /<partial\b([^>]*)\/>/gi;
-  const menuPairedTag = /<site-menu-items\b([^>]*)><\/site-menu-items>/gi;
-  const menuSelfClosingTag = /<site-menu-items\b([^>]*)\/>/gi;
-  const pairedTag = /<database\b([^>]*)><\/database>/gi;
-  const selfClosingTag = /<database\b([^>]*)\/>/gi;
-  const linkPairedTag = /<database-link\b([^>]*)><\/database-link>/gi;
-  const linkSelfClosingTag = /<database-link\b([^>]*)\/>/gi;
-  const listPairedTag = /<database-list\b([^>]*)><\/database-list>/gi;
-  const listSelfClosingTag = /<database-list\b([^>]*)\/>/gi;
-
-  const replaceTag = (_match, rawAttributes) => {
-    const attributes = parseAttributes(rawAttributes);
-    const record = attributes.id ? records.get(attributes.id) : currentRecord;
-    const field = attributes.field || "body";
-
-    return renderField(record, field);
-  };
-
-  const replaceLink = (_match, rawAttributes) => {
-    const attributes = parseAttributes(rawAttributes);
-    return renderDatabaseLink(records.get(attributes.id), attributes);
-  };
-
-  const replacePartial = (_match, rawAttributes) => {
-    const attributes = parseAttributes(rawAttributes);
-    return replaceDatabaseTags(readPartial(attributes.name), database, currentRecord);
-  };
-
-  const replaceMenuItems = (_match, rawAttributes) => renderMenuItems(database, parseAttributes(rawAttributes));
-
-  const replaceList = (_match, rawAttributes) => renderDatabaseList(pages, parseAttributes(rawAttributes));
+  const partialTag = /<partial\b([^>]*)><\/partial>|<partial\b([^>]*)\/>/gi;
+  const menuItemsTag = /<site-menu-items\b([^>]*)><\/site-menu-items>|<site-menu-items\b([^>]*)\/>/gi;
+  const databaseTag = /<database\b([^>]*)><\/database>|<database\b([^>]*)\/>/gi;
+  const databaseLinkTag = /<database-link\b([^>]*)><\/database-link>|<database-link\b([^>]*)\/>/gi;
+  const databaseListTag = /<database-list\b([^>]*)><\/database-list>|<database-list\b([^>]*)\/>/gi;
 
   return html
-    .replace(partialPairedTag, replacePartial)
-    .replace(partialSelfClosingTag, replacePartial)
-    .replace(menuPairedTag, replaceMenuItems)
-    .replace(menuSelfClosingTag, replaceMenuItems)
-    .replace(listPairedTag, replaceList)
-    .replace(listSelfClosingTag, replaceList)
-    .replace(linkPairedTag, replaceLink)
-    .replace(linkSelfClosingTag, replaceLink)
-    .replace(pairedTag, replaceTag)
-    .replace(selfClosingTag, replaceTag);
-}
-
-function processHtmlFiles(database) {
-  for (const filePath of findFiles(outputDir, ".html")) {
-    const html = fs.readFileSync(filePath, "utf8");
-    fs.writeFileSync(filePath, replaceDatabaseTags(html, database));
-  }
+    .replace(partialTag, (_match, pairedAttrs, selfAttrs) => {
+      const attributes = parseAttributes(pairedAttrs || selfAttrs || "");
+      return replaceTemplateTags(readPartial(attributes.name), database, currentRecord);
+    })
+    .replace(menuItemsTag, (_match, pairedAttrs, selfAttrs) =>
+      renderMenuItems(database, parseAttributes(pairedAttrs || selfAttrs || ""))
+    )
+    .replace(databaseListTag, (_match, pairedAttrs, selfAttrs) =>
+      renderDatabaseList(pages, parseAttributes(pairedAttrs || selfAttrs || ""))
+    )
+    .replace(databaseLinkTag, (_match, pairedAttrs, selfAttrs) => {
+      const attributes = parseAttributes(pairedAttrs || selfAttrs || "");
+      return renderDatabaseLink(records.get(attributes.id), attributes);
+    })
+    .replace(databaseTag, (_match, pairedAttrs, selfAttrs) => {
+      const attributes = parseAttributes(pairedAttrs || selfAttrs || "");
+      const record = attributes.id ? records.get(attributes.id) : currentRecord;
+      return renderField(record, attributes.field || "body");
+    });
 }
 
 function templateNameForPage(page) {
-  return String(page.template || page.type || "page")
-    .trim()
-    .replace(/[^a-zA-Z0-9_-]+/g, "") || "page";
+  return String(page.template || page.type || "page").trim().replace(/[^a-zA-Z0-9_-]+/g, "") || "page";
 }
 
 function readTemplate(name) {
@@ -332,22 +305,24 @@ function readTemplate(name) {
   throw new Error("Missing required template: public.source/templates/page.html");
 }
 
+function processCopiedHtmlFiles(database) {
+  for (const filePath of findFiles(outputDir, ".html")) {
+    const html = fs.readFileSync(filePath, "utf8");
+    fs.writeFileSync(filePath, replaceTemplateTags(html, database));
+  }
+}
+
 function generatePageFiles(database) {
   const homeTemplate = readTemplate("home");
   const homeRecord = database.pages[0] || null;
 
-  fs.writeFileSync(
-    path.join(outputDir, "index.html"),
-    replaceDatabaseTags(homeTemplate, database, homeRecord)
-  );
+  fs.writeFileSync(path.join(outputDir, "index.html"), replaceTemplateTags(homeTemplate, database, homeRecord));
 
-  database.pages.forEach((page) => {
+  for (const page of database.pages) {
     const template = readTemplate(templateNameForPage(page));
-    const outputHtml = replaceDatabaseTags(template, database, page);
-    const outputPath = path.join(outputDir, outputFileNameForPage(page));
-
-    fs.writeFileSync(outputPath, outputHtml);
-  });
+    const outputHtml = replaceTemplateTags(template, database, page);
+    fs.writeFileSync(path.join(outputDir, outputFileNameForPage(page)), outputHtml);
+  }
 }
 
 function build() {
@@ -366,7 +341,7 @@ function build() {
   copyDir(path.join(dataDir, "assets"), path.join(outputDir, "data/assets"));
   const database = loadDatabase();
   generatePageFiles(database);
-  processHtmlFiles(database);
+  processCopiedHtmlFiles(database);
   console.log(`Built static site in ${path.relative(rootDir, outputDir)}/`);
 }
 

@@ -2,48 +2,37 @@
   "version": 1,
   "pages": [
     {
-      "id": "1",
-      "slug": "index-page",
+      "id": "hello",
+      "slug": "hello",
       "type": "page",
-      "title": "hello world again",
-      "subtitle": "hello world again",
+      "title": "Hello",
+      "subtitle": "A JSON-backed page",
       "published": true,
       "order": 1,
-      "file": "data/pages/1.json",
-      "updatedAt": "2026-06-03T08:37:37.366Z"
+      "file": "data/pages/hello.json",
+      "updatedAt": "2026-06-04T00:00:00.000Z"
     },
     {
-      "id": "3434645643563456",
+      "id": "work",
       "slug": "work",
       "type": "gallery",
-      "title": "work",
-      "subtitle": "work",
+      "title": "Work",
+      "subtitle": "A gallery record",
       "published": true,
       "order": 2,
-      "file": "data/pages/3434645643563456.json",
-      "updatedAt": "2026-06-03T09:15:17.028Z"
+      "file": "data/pages/work.json",
+      "updatedAt": "2026-06-04T00:00:00.000Z"
     },
     {
-      "id": "45364536456",
+      "id": "about",
       "slug": "about",
       "type": "page",
-      "title": "about",
-      "subtitle": "about",
+      "title": "About",
+      "subtitle": "A normal page",
       "published": true,
       "order": 3,
-      "file": "data/pages/45364536456.json",
-      "updatedAt": "2026-06-03T07:59:07.049Z"
-    },
-    {
-      "id": "43564356",
-      "slug": "contact",
-      "type": "page",
-      "title": "contact",
-      "subtitle": "contact",
-      "published": true,
-      "order": 4,
-      "file": "data/pages/43564356.json",
-      "updatedAt": "2026-06-03T07:59:22.948Z"
+      "file": "data/pages/about.json",
+      "updatedAt": "2026-06-04T00:00:00.000Z"
     }
   ]
 }

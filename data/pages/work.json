@@ -1,0 +1,21 @@
+{
+  "id": "work",
+  "slug": "work",
+  "type": "gallery",
+  "template": "",
+  "title": "Work",
+  "subtitle": "A gallery record",
+  "body": "Gallery pages use the gallery template by default.",
+  "coverImage": null,
+  "images": [
+    {
+      "id": "image-1",
+      "src": "data/assets/hello/cover.svg",
+      "alt": "Gallery sample image",
+      "caption": "Sample gallery image"
+    }
+  ],
+  "published": true,
+  "createdAt": "2026-06-04T00:00:00.000Z",
+  "updatedAt": "2026-06-04T00:00:00.000Z"
+}
