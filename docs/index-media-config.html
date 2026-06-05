@@ -417,7 +417,7 @@
 <div class="modal-bg" id="pubModal">
   <div class="modal">
     <h3>Publish to main</h3>
-    <p class="mdesc">Merge <b>draft</b> → <b>main</b>. The GitHub Action will deploy <span class="mono">docs/</span> to Pages.</p>
+    <p class="mdesc">Sync <b>main</b> → <b>draft</b>, then merge <b>draft</b> → <b>main</b>. The GitHub Action will deploy <span class="mono">docs/</span> to Pages.</p>
     <div class="modal-warn" id="pubWarn"></div>
     <div class="modal-err" id="pubErr"></div>
     <div class="modal-row">
@@ -469,6 +469,7 @@ function toast(msg,kind){
   t.className=''; if(kind)t.classList.add(kind); t.classList.add('show');
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600);
 }
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
 async function gh(path,{method='GET',body,raw=false}={}){
   const res=await fetch(API+path,{
@@ -485,7 +486,10 @@ async function gh(path,{method='GET',body,raw=false}={}){
     let detail=''; try{detail=(await res.json()).message||'';}catch(e){}
     const err=new Error(detail||res.statusText); err.status=res.status; throw err;
   }
-  return raw?res:res.json();
+  if(raw) return res;
+  if(res.status===204) return null;
+  const text=await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
 function parseRepoUrl(url){
@@ -954,38 +958,60 @@ async function doCommit(){
 
   const fileRec=state.files.get(f.path);
   try{
-    // FIX #1/#3: rebuild the ONE canonical file content from all its fragments,
-    // then write the whole file once. No per-fragment content copies, no SHA sync hack.
-    let content=fileRec.content;
-    for(const id of fileRec.fragments){
+    const dirtyIds=fileRec.fragments.filter(id=>state.frags.get(id)?.dirty);
+    const htmlDirtyIds=dirtyIds.filter(id=>{
       const frag=state.frags.get(id);
-      content=replaceFragment(content,frag);
-    }
-
-    // always fetch the live draft SHA right before writing (avoids mismatch)
-    let sha=null;
-    try{
-      const cur=await gh(`/repos/${state.owner}/${state.repo}/contents/${f.path}?ref=${state.workBranch}`);
-      sha=cur.sha;
-    }catch(e){ if(e.status!==404) throw e; }
-
-    const put=await gh(`/repos/${state.owner}/${state.repo}/contents/${f.path}`,{
-      method:'PUT',
-      body:{ message:msg, content:enc(content), branch:state.workBranch, ...(sha?{sha}:{}) }
+      return frag && frag.innerHTML!==frag.origHTML;
     });
 
-    // update canonical record
-    fileRec.content=content;
-    fileRec.shaDraft=put.content.sha;
-    for(const id of fileRec.fragments){
+    // Use the live draft file as the base before writing. This keeps the
+    // one-person workflow forgiving when another GitCMS action, media upload,
+    // config save, or GitHub UI edit moved the draft branch after load.
+    if(htmlDirtyIds.length){
+      let put=null;
+      for(let attempt=1; attempt<=2; attempt++){
+        try{
+          let content=fileRec.content;
+          let sha=null;
+          try{
+            const cur=await gh(`/repos/${state.owner}/${state.repo}/contents/${ghPath(f.path)}?ref=${encodeURIComponent(state.workBranch)}`);
+            content=dec(cur.content);
+            sha=cur.sha;
+          }catch(e){ if(e.status!==404) throw e; }
+
+          for(const id of htmlDirtyIds){
+            const frag=state.frags.get(id);
+            content=replaceFragment(content,frag);
+          }
+
+          put=await gh(`/repos/${state.owner}/${state.repo}/contents/${ghPath(f.path)}`,{
+            method:'PUT',
+            body:{ message:msg, content:enc(content), branch:state.workBranch, ...(sha?{sha}:{}) }
+          });
+
+          fileRec.content=content;
+          fileRec.shaDraft=put.content.sha;
+          break;
+        }catch(e){
+          if(e.status===409 && attempt<2){
+            await sleep(400);
+            continue;
+          }
+          throw e;
+        }
+      }
+    }
+
+    // Manifest update (labels) — only needed when something in this file is dirty.
+    // This also handles label-only saves without rewriting the HTML file.
+    if(state.manifest && dirtyIds.length){
+      await commitManifest(msg);
+    }
+
+    for(const id of dirtyIds){
       const frag=state.frags.get(id);
       frag.origHTML=frag.innerHTML;
       frag.dirty=false;
-    }
-
-    // manifest update (labels) — write to draft only if a manifest exists
-    if(state.manifest){
-      await commitManifest(msg);
     }
 
     el('commitModal').classList.remove('show');
@@ -1003,7 +1029,7 @@ async function doCommit(){
 }
 
 function commitErrMsg(e){
-  if(e.status===409) return 'SHA conflict — the file changed on draft since loading. Hit Refresh and re-apply your edit.';
+  if(e.status===409) return 'GitHub reported a write conflict. GitCMS retried once using the live draft file, but it still failed. Refresh and try again.';
   if(e.status===422) return 'GitHub rejected the write (422). The branch or path may be invalid.';
   if(e.status===403) return 'Forbidden (403) — the token lacks Contents: write on this repo.';
   return 'Commit failed: '+esc(e.message);
@@ -1347,26 +1373,48 @@ el('publishBtn').onclick=()=>{
 el('pubCancel').onclick=()=>el('pubModal').classList.remove('show');
 el('pubConfirm').onclick=doPublish;
 
+async function syncDraftFromMain(){
+  try{
+    await gh(`/repos/${state.owner}/${state.repo}/merges`,{
+      method:'POST',
+      body:{base:state.workBranch,head:state.defaultBranch,commit_message:'cms: sync '+state.defaultBranch+' → draft'}
+    });
+  }catch(e){
+    if(e.status===409) e.phase='sync-main-into-draft';
+    throw e;
+  }
+}
+
 async function doPublish(){
-  const btn=el('pubConfirm'); btn.disabled=true; btn.textContent='Publishing…';
+  const btn=el('pubConfirm'); btn.disabled=true; btn.textContent='Syncing…';
   el('pubErr').classList.remove('show');
   try{
+    // One-person workflow: before publishing, first bring draft up to date with
+    // main. If there are no real content conflicts, this prevents the common
+    // "main changed since draft branched" publish failure.
+    await syncDraftFromMain();
+
+    btn.textContent='Publishing…';
     await gh(`/repos/${state.owner}/${state.repo}/merges`,{
       method:'POST',
       body:{base:state.defaultBranch,head:state.workBranch,commit_message:'cms: publish draft → '+state.defaultBranch}
     });
     el('pubModal').classList.remove('show');
     toast('Published — GitHub Action will deploy shortly','ok');
+    await loadAll();
   }catch(e){
-    // FIX #3: surface merge conflicts honestly. No force, no auto-rebase.
     const err=el('pubErr');
     if(e.status===409){
       const compare=`https://github.com/${state.owner}/${state.repo}/compare/${state.defaultBranch}...${state.workBranch}`;
-      err.innerHTML=`Merge conflict — <b>${state.defaultBranch}</b> changed since draft branched. `+
-        `Resolve it on GitHub: <a href="${compare}" target="_blank" rel="noopener">open the compare view ↗</a>. `+
-        `GitCMS won't force-push or auto-rebase, to avoid losing work.`;
+      if(e.phase==='sync-main-into-draft'){
+        err.innerHTML=`Draft and <b>${state.defaultBranch}</b> both changed the same file/lines, so GitCMS could not auto-sync before publishing. `+
+          `Resolve it on GitHub: <a href="${compare}" target="_blank" rel="noopener">open the compare view ↗</a>.`;
+      }else{
+        err.innerHTML=`Merge conflict while publishing draft → <b>${state.defaultBranch}</b>. `+
+          `Resolve it on GitHub: <a href="${compare}" target="_blank" rel="noopener">open the compare view ↗</a>.`;
+      }
     }else if(e.status===403){
-      err.textContent='Forbidden (403) — token lacks merge permission.';
+      err.textContent='Forbidden (403) — the token lacks merge permission.';
     }else if(e.status===404){
       err.textContent='Nothing to merge, or branch not found.';
     }else{
