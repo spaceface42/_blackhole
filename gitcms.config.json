@@ -1,6 +1,7 @@
 {
   "media": {
     "dir": "docs/assets/media",
-    "publicPrefix": "/assets/media/"
-  }
+    "publicPrefix": "assets/media/"
+  },
+  "manifestPath": "fragments.json"
 }
