@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — My Site</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Georgia, serif;
+      background: #fafaf8;
+      color: #1a1a1a;
+      line-height: 1.7;
+    }
+
+    header {
+      padding: 1.2rem 2rem;
+      border-bottom: 1px solid #e5e5e0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header .logo { font-size: 1.1rem; font-weight: bold; letter-spacing: 0.05em; }
+    header nav a { margin-left: 1.5rem; text-decoration: none; color: #555; font-size: 0.9rem; }
+    header nav a:hover { color: #1a1a1a; }
+    header nav a.active { color: #1a1a1a; border-bottom: 1px solid #1a1a1a; }
+
+    main { max-width: 860px; margin: 0 auto; padding: 0 2rem 4rem; }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid #e5e5e0;
+      font-size: 0.8rem;
+      color: #999;
+    }
+
+    section.fragment { padding: 4rem 0; border-bottom: 1px solid #e5e5e0; }
+    section.fragment:last-of-type { border-bottom: none; }
+
+    /* Mission */
+    #mission h1 { font-size: 2.2rem; font-weight: normal; margin-bottom: 1.2rem; }
+    #mission p  { color: #444; max-width: 620px; margin-bottom: 1rem; }
+
+    /* Team */
+    #team h2 { font-size: 1.5rem; font-weight: normal; margin-bottom: 2rem; }
+    #team .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+    #team .person { }
+    #team .avatar {
+      width: 64px; height: 64px;
+      background: #e5e5e0;
+      border-radius: 50%;
+      margin-bottom: 0.8rem;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+      color: #999;
+    }
+    #team .person h3 { font-size: 0.95rem; margin-bottom: 0.2rem; }
+    #team .person .role { font-size: 0.82rem; color: #888; margin-bottom: 0.5rem; }
+    #team .person p { font-size: 0.85rem; color: #555; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">MySite</div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="about.html" class="active">About</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+</header>
+
+<main>
+
+  <section id="mission" class="fragment">
+    <h1>We believe in doing<br>fewer things, better.</h1>
+    <p>
+      MySite started as a small experiment in 2020 — a place to document what we were
+      learning, share work in progress, and think out loud without the pressure of polish.
+    </p>
+    <p>
+      That spirit hasn't changed. We still value craft over speed, clarity over cleverness,
+      and honest work over impressive-sounding work.
+    </p>
+  </section>
+
+  <section id="team" class="fragment">
+    <h2>The people behind it</h2>
+    <div class="grid">
+      <div class="person">
+        <div class="avatar">A</div>
+        <h3>Alex Morgan</h3>
+        <div class="role">Design & Direction</div>
+        <p>Thinks in systems, draws in margins, drinks too much coffee.</p>
+      </div>
+      <div class="person">
+        <div class="avatar">J</div>
+        <h3>Jordan Lee</h3>
+        <div class="role">Development</div>
+        <p>Writes clean code and occasionally very messy commit messages.</p>
+      </div>
+      <div class="person">
+        <div class="avatar">S</div>
+        <h3>Sam Rivera</h3>
+        <div class="role">Strategy & Writing</div>
+        <p>Asks the inconvenient questions before someone else has to.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  &copy; 2026 MySite. All rights reserved.
+</footer>
+
+</body>
+</html>

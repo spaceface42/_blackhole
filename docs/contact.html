@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — My Site</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Georgia, serif;
+      background: #fafaf8;
+      color: #1a1a1a;
+      line-height: 1.7;
+    }
+
+    header {
+      padding: 1.2rem 2rem;
+      border-bottom: 1px solid #e5e5e0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header .logo { font-size: 1.1rem; font-weight: bold; letter-spacing: 0.05em; }
+    header nav a { margin-left: 1.5rem; text-decoration: none; color: #555; font-size: 0.9rem; }
+    header nav a:hover { color: #1a1a1a; }
+    header nav a.active { color: #1a1a1a; border-bottom: 1px solid #1a1a1a; }
+
+    main { max-width: 860px; margin: 0 auto; padding: 0 2rem 4rem; }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid #e5e5e0;
+      font-size: 0.8rem;
+      color: #999;
+    }
+
+    section.fragment { padding: 4rem 0; border-bottom: 1px solid #e5e5e0; }
+    section.fragment:last-of-type { border-bottom: none; }
+
+    /* Contact form */
+    #contact h1 { font-size: 2.2rem; font-weight: normal; margin-bottom: 0.6rem; }
+    #contact .intro { color: #555; max-width: 520px; margin-bottom: 2.5rem; }
+
+    #contact form { max-width: 520px; }
+    #contact .field { margin-bottom: 1.4rem; }
+    #contact label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 0.4rem; letter-spacing: 0.04em; }
+    #contact input,
+    #contact textarea {
+      width: 100%;
+      background: #fff;
+      border: 1px solid #ddd;
+      color: #1a1a1a;
+      font-family: Georgia, serif;
+      font-size: 0.95rem;
+      padding: 0.7rem 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #contact input:focus,
+    #contact textarea:focus { border-color: #1a1a1a; }
+    #contact textarea { resize: vertical; min-height: 120px; }
+    #contact button {
+      padding: 0.75rem 2rem;
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      font-family: Georgia, serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #contact button:hover { background: #333; }
+
+    /* Map placeholder */
+    #map h2 { font-size: 1.5rem; font-weight: normal; margin-bottom: 1.5rem; }
+    #map .map-frame {
+      width: 100%;
+      height: 280px;
+      background: #e5e5e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #aaa;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.2rem;
+    }
+    #map address {
+      font-style: normal;
+      font-size: 0.9rem;
+      color: #555;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">MySite</div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="contact.html" class="active">Contact</a>
+  </nav>
+</header>
+
+<main>
+
+  <section id="contact" class="fragment">
+    <h1>Say hello.</h1>
+    <p class="intro">We read every message and try to reply within a day or two. No auto-replies, no sales pitches.</p>
+    <form onsubmit="return false;">
+      <div class="field">
+        <label>Your name</label>
+        <input type="text" placeholder="Alex Smith" />
+      </div>
+      <div class="field">
+        <label>Email address</label>
+        <input type="email" placeholder="alex@example.com" />
+      </div>
+      <div class="field">
+        <label>Message</label>
+        <textarea placeholder="What's on your mind?"></textarea>
+      </div>
+      <button type="submit">Send message</button>
+    </form>
+  </section>
+
+  <section id="map" class="fragment">
+    <h2>Where to find us</h2>
+    <div class="map-frame">[ map embed goes here ]</div>
+    <address>
+      MySite Studio<br>
+      42 Somewhere Street<br>
+      Budapest, Hungary<br>
+      <a href="mailto:hello@mysite.com" style="color:#1a1a1a;">hello@mysite.com</a>
+    </address>
+  </section>
+
+</main>
+
+<footer>
+  &copy; 2026 MySite. All rights reserved.
+</footer>
+
+</body>
+</html>
