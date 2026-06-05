@@ -1,6 +1,6 @@
 {
   "media": {
     "dir": "docs/assets/media",
-    "publicPrefix": "assets/media/"
+    "publicPrefix": "/assets/media/"
   }
 }
