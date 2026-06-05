@@ -1,5 +1,10 @@
 [
-  { "id": "01", "file": "fragment.html", "label": "Hero Section" },
-  { "id": "02", "file": "doh.html", "label": "Features" },
-  { "id": "03", "file": "demo.html", "label": "Team" }
+  { "id": "hero",     "file": "docs/index.html",   "label": "Hero Section"      },
+  { "id": "intro",    "file": "docs/index.html",   "label": "Introduction"      },
+  { "id": "features", "file": "docs/index.html",   "label": "Features"          },
+  { "id": "cta",      "file": "docs/index.html",   "label": "Call to Action"    },
+  { "id": "team",     "file": "docs/about.html",   "label": "Team"              },
+  { "id": "mission",  "file": "docs/about.html",   "label": "Mission Statement" },
+  { "id": "contact",  "file": "docs/contact.html", "label": "Contact Form"      },
+  { "id": "map",      "file": "docs/contact.html", "label": "Location Map"      }
 ]
