@@ -1,13 +1,13 @@
 [
   {
-    "id": "intro",
-    "file": "docs/index.html",
-    "label": "Introduction"
-  },
-  {
     "id": "hero",
     "file": "docs/index.html",
     "label": "Hero Section"
+  },
+  {
+    "id": "intro",
+    "file": "docs/index.html",
+    "label": "Introduction"
   },
   {
     "id": "features",
