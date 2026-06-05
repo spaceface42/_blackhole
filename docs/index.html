@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Site</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Georgia, serif;
+      background: #fafaf8;
+      color: #1a1a1a;
+      line-height: 1.7;
+    }
+
+    header {
+      padding: 1.2rem 2rem;
+      border-bottom: 1px solid #e5e5e0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header .logo { font-size: 1.1rem; font-weight: bold; letter-spacing: 0.05em; }
+    header nav a { margin-left: 1.5rem; text-decoration: none; color: #555; font-size: 0.9rem; }
+    header nav a:hover { color: #1a1a1a; }
+
+    main { max-width: 860px; margin: 0 auto; padding: 0 2rem 4rem; }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid #e5e5e0;
+      font-size: 0.8rem;
+      color: #999;
+    }
+
+    /* Fragment base style */
+    section.fragment { padding: 4rem 0; border-bottom: 1px solid #e5e5e0; }
+    section.fragment:last-of-type { border-bottom: none; }
+
+    /* Hero */
+    #hero { padding: 5rem 0 4rem; }
+    #hero h1 { font-size: 2.8rem; line-height: 1.2; margin-bottom: 1.2rem; font-weight: normal; }
+    #hero h1 em { font-style: italic; color: #555; }
+    #hero p { font-size: 1.1rem; color: #555; max-width: 520px; margin-bottom: 2rem; }
+    #hero a.btn { display: inline-block; padding: 0.75rem 1.8rem; background: #1a1a1a; color: #fff; text-decoration: none; font-size: 0.88rem; letter-spacing: 0.04em; transition: background 0.2s; }
+    #hero a.btn:hover { background: #333; }
+
+    /* Intro */
+    #intro h2 { font-size: 1.5rem; font-weight: normal; margin-bottom: 1rem; }
+    #intro p  { color: #444; max-width: 620px; }
+
+    /* Features */
+    #features h2 { font-size: 1.5rem; font-weight: normal; margin-bottom: 2rem; }
+    #features .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+    #features .card { padding: 1.5rem; border: 1px solid #e5e5e0; background: #fff; }
+    #features .card h3 { font-size: 1rem; margin-bottom: 0.6rem; }
+    #features .card p  { font-size: 0.88rem; color: #666; }
+
+    /* CTA */
+    #cta { text-align: center; background: #1a1a1a; color: #fff; padding: 4rem 2rem; margin: 0 -2rem; }
+    #cta h2 { font-size: 1.8rem; font-weight: normal; margin-bottom: 1rem; }
+    #cta p  { color: #aaa; margin-bottom: 2rem; }
+    #cta a.btn { display: inline-block; padding: 0.75rem 2rem; border: 1px solid #fff; color: #fff; text-decoration: none; font-size: 0.88rem; letter-spacing: 0.04em; transition: all 0.2s; }
+    #cta a.btn:hover { background: #fff; color: #1a1a1a; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">MySite</div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+</header>
+
+<main>
+
+  <section id="hero" class="fragment">
+    <h1>Build things that<br><em>actually matter</em></h1>
+    <p>A simple, honest site for sharing ideas, work, and everything in between.</p>
+    <a class="btn" href="about.html">Learn more</a>
+  </section>
+
+  <section id="intro" class="fragment">
+    <h2>What this is about</h2>
+    <p>
+      This is a place to think out loud. We write about craft, process, and the slow work
+      of making something good. No noise, no filler — just the things worth saying.
+    </p>
+  </section>
+
+  <section id="features" class="fragment">
+    <h2>What we do</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Design</h3>
+        <p>Thoughtful interfaces built around how people actually behave, not how we wish they would.</p>
+      </div>
+      <div class="card">
+        <h3>Development</h3>
+        <p>Clean, maintainable code that solves the right problem without overengineering the solution.</p>
+      </div>
+      <div class="card">
+        <h3>Strategy</h3>
+        <p>Helping teams figure out what to build before they start building the wrong thing faster.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="cta" class="fragment">
+    <h2>Ready to start something?</h2>
+    <p>We'd love to hear what you're working on.</p>
+    <a class="btn" href="contact.html">Get in touch</a>
+  </section>
+
+</main>
+
+<footer>
+  &copy; 2026 MySite. All rights reserved.
+</footer>
+
+</body>
+</html>
