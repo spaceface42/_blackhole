@@ -1,5 +1,5 @@
 [
-  { "id": "01", "file": "index.html", "label": "Hero Section" },
-  { "id": "02", "file": "index.html", "label": "Features" },
-  { "id": "03", "file": "about.html", "label": "Team" }
+  { "id": "01", "file": "fragment.html", "label": "Hero Section" },
+  { "id": "02", "file": "doh.html", "label": "Features" },
+  { "id": "03", "file": "demo.html", "label": "Team" }
 ]
