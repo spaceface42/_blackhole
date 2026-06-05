@@ -30,13 +30,13 @@
     "label": "Team"
   },
   {
-    "id": "contact",
-    "file": "docs/contact.html",
-    "label": "Contact Form"
-  },
-  {
     "id": "map",
     "file": "docs/contact.html",
     "label": "Location Map"
+  },
+  {
+    "id": "contact",
+    "file": "docs/contact.html",
+    "label": "Contact Form"
   }
 ]
