@@ -6,7 +6,7 @@
   },
   "preview": {
     "css": [
-      "assets/style.css"
+      "assets/style1.css"
     ]
   },
   "manifestPath": "fragments.json"
