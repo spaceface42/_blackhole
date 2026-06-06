@@ -1,4 +1,5 @@
 {
+  "workBranch": "content",
   "media": {
     "dir": "docs/assets/media",
     "publicPrefix": "assets/media/"
