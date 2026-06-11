@@ -1,13 +1,26 @@
 {
-  "workBranch": "content",
-  "media": {
-    "dir": "docs/assets/media",
-    "publicPrefix": "assets/media/"
+  "version": 1,
+  "content": {
+    "partialsDir": "src/mpartials",
+    "partialLinkRel": "partial"
   },
-  "preview": {
-    "css": [
-      "assets/style.css"
+  "media": {
+    "mediaDir": "src/media",
+    "publicPath": "./media/",
+    "maxUploadBytes": 5242880,
+    "allowedExtensions": [
+      "jpg",
+      "jpeg",
+      "png",
+      "webp",
+      "gif"
     ]
   },
-  "manifestPath": "fragments.json"
+  "preview": {
+    "css": []
+  },
+  "build": {
+    "sourceDir": ".",
+    "outputDir": "dist"
+  }
 }
