@@ -2056,44 +2056,12 @@ class FileListView {
       this.allowedExtensions = $("#s-allowed-ext");
       this.sourceDir = $("#s-source-dir");
       this.outputDir = $("#s-output-dir");
-      this.fields = [
-        this.partialsDir,
-        this.mediaDir,
-        this.publicMediaPath,
-        this.maxUploadBytes,
-        this.allowedExtensions,
-        this.sourceDir,
-        this.outputDir
-      ];
       this.currentConfig = normalizeProjectConfig({});
-      this.originalConfigText = this.serialize(this.currentConfig);
-      this.saving = false;
-      this.enabled = false;
-      this.fields.forEach(field => {
-        field.addEventListener("input", () => this.updateDirtyState());
-        field.addEventListener("change", () => this.updateDirtyState());
-      });
-      this.updateDirtyState();
-    }
-
-    serialize(config){
-      return JSON.stringify(normalizeProjectConfig(config));
-    }
-
-    isDirty(){
-      return this.serialize(this.read()) !== this.originalConfigText;
-    }
-
-    updateDirtyState(){
-      this.saveButton.disabled = !this.enabled || this.saving || !this.isDirty();
-      this.saveButton.textContent = this.saving ? "Saving…" : (this.isDirty() ? "Save config" : "Config saved");
     }
 
     setEnabled(enabled){
-      this.enabled = !!enabled;
       this.toggleButton.disabled = !enabled;
       if (!enabled) this.close();
-      this.updateDirtyState();
     }
 
     onToggle(callback){
@@ -2105,10 +2073,7 @@ class FileListView {
     }
 
     onSave(callback){
-      this.saveButton.onclick = () => {
-        if (this.saveButton.disabled || !this.isDirty()) return;
-        callback(this.read());
-      };
+      this.saveButton.onclick = () => callback(this.read());
     }
 
     toggle(){
@@ -2130,7 +2095,6 @@ class FileListView {
     render(config, info){
       const normalized = normalizeProjectConfig(config);
       this.currentConfig = normalized;
-      this.originalConfigText = this.serialize(normalized);
       this.meta.textContent = `${info.path || "gitcms.config.json"} · ${info.exists ? "loaded from repo" : "using defaults, save to create"}`;
       this.partialsDir.value = normalized.content.partialsDir;
       this.mediaDir.value = normalized.media.mediaDir;
@@ -2139,7 +2103,6 @@ class FileListView {
       this.allowedExtensions.value = normalized.media.allowedExtensions.join(", ");
       this.sourceDir.value = normalized.build.sourceDir;
       this.outputDir.value = normalized.build.outputDir;
-      this.updateDirtyState();
     }
 
     read(){
@@ -2171,8 +2134,8 @@ class FileListView {
     }
 
     setSaving(isSaving){
-      this.saving = !!isSaving;
-      this.updateDirtyState();
+      this.saveButton.disabled = isSaving;
+      this.saveButton.textContent = isSaving ? "Saving…" : "Save config";
     }
   }
 
@@ -2365,7 +2328,6 @@ class FileListView {
         this.projectConfigSha = saved.sha;
         this.projectConfigExists = true;
         this.applyProjectConfig();
-        this.settingsView.render(this.projectConfig, this.configInfo());
         this.state.setFiles([]);
         this.state.setMediaFiles([]);
         this.closeEditor();
