@@ -13,5 +13,51 @@ _blackhole / content
 
 <link rel="partial" href="./partials/aha.html" />
 
+
 </body>
+<script>
+<!-- index.html -->
+
+<body>
+  <h1>Main page</h1>
+
+  <link rel="partial" href="./partials/aha.html" />
+
+  <script>
+    async function loadPartials() {
+      const partialLinks = document.querySelectorAll('link[rel="partial"]');
+
+      for (const link of partialLinks) {
+        const href = link.getAttribute("href");
+
+        try {
+          const response = await fetch(href);
+
+          if (!response.ok) {
+            throw new Error(`Failed to load ${href}: ${response.status}`);
+          }
+
+          const html = await response.text();
+
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = html;
+
+          link.replaceWith(...wrapper.childNodes);
+
+        } catch (error) {
+          console.error(error);
+
+          const errorBox = document.createElement("div");
+          errorBox.style.color = "red";
+          errorBox.textContent = `Could not load partial: ${href}`;
+
+          link.replaceWith(errorBox);
+        }
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadPartials);
+  </script>
+</body>
+</script>
 </html>
