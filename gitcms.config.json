@@ -13,14 +13,15 @@
       "jpeg",
       "png",
       "webp",
-      "gif"
+      "gif",
+      "svg"
     ]
   },
   "preview": {
     "css": []
   },
   "build": {
-    "sourceDir": "src",
+    "sourceDir": ".",
     "outputDir": "dist"
   }
 }
