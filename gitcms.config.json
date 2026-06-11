@@ -1,7 +1,7 @@
 {
   "version": 1,
   "content": {
-    "partialsDir": "src/mpartials",
+    "partialsDir": "src/partials",
     "partialLinkRel": "partial"
   },
   "media": {
