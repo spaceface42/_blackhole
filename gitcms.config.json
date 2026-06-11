@@ -20,7 +20,7 @@
     "css": []
   },
   "build": {
-    "sourceDir": ".",
+    "sourceDir": "src",
     "outputDir": "dist"
   }
 }
