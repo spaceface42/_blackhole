@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GitCMS Test Site</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="page">
+    <header class="site-header">
+      <p class="eyebrow">GitCMS test site</p>
+      <h1>Static page built from editable fragments</h1>
+      <p>This file lives in <code>src/index.html</code>. The partial links below are replaced at build time.</p>
+    </header>
+
+    <!-- src/partials/aha.html -->
+<section class="cms-section aha">
+  <h2>Aha fragment</h2>
+  <p>Edit this from GitCMS, commit it, then GitHub Actions will rebuild the static page.</p>
+</section>
+
+    <!-- src/partials/bob.html -->
+<section class="cms-section bob">
+  <h2>Bob fragment</h2>
+  <p>This is another editable HTML partial.</p>
+</section>
+
+  </main>
+</body>
+</html>
