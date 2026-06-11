@@ -10,7 +10,6 @@
     "maxUploadBytes": 5242880,
     "allowedExtensions": [
       "jpg",
-      "jpeg",
       "png",
       "webp",
       "gif",
