@@ -17,6 +17,9 @@ const DEFAULT_CONFIG = {
     maxUploadBytes: 5242880,
     allowedExtensions: ["jpg", "jpeg", "png", "webp", "gif"]
   },
+  preview: {
+    css: []
+  },
   build: {
     sourceDir: "src",
     outputDir: "dist"
@@ -39,6 +42,10 @@ async function loadConfig() {
     media: {
       ...DEFAULT_CONFIG.media,
       ...(user.media || {})
+    },
+    preview: {
+      ...DEFAULT_CONFIG.preview,
+      ...(user.preview || {})
     },
     build: {
       ...DEFAULT_CONFIG.build,
@@ -120,6 +127,10 @@ const partialsDir = path.resolve(ROOT, config.content.partialsDir);
 
 if (!existsSync(sourceDir)) {
   throw new Error(`Source directory not found: ${config.build.sourceDir}`);
+}
+
+if (sourceDir === outputDir) {
+  throw new Error("Source directory and output directory cannot be the same.");
 }
 
 await rm(outputDir, { recursive: true, force: true });

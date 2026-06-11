@@ -1,0 +1,2636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>GitCMS — your repo is the database</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens ---------- */
+:root{
+  --ink:#0e1016;        /* page */
+  --panel:#151823;      /* raised surface */
+  --panel-2:#1b1f2e;    /* hover / inset */
+  --line:#272d40;       /* borders */
+  --text:#e7e9f2;
+  --muted:#8d93a9;
+  --accent:#8b7cf6;     /* violet */
+  --accent-soft:rgba(139,124,246,.16);
+  --on-accent:#12102a;
+  --ok:#5fd9a4;
+  --warn:#f2b150;
+  --danger:#f0716e;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--ink);color:var(--text);
+  font-family:var(--sans);font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--accent-soft)}
+a{color:var(--accent)}
+button{font:inherit;cursor:pointer}
+input,textarea,select{font:inherit;color:inherit}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+/* mono is the chrome voice: labels, paths, shas, buttons */
+.m{font-family:var(--mono)}
+.label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- buttons ---------- */
+.btn{
+  font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;
+  padding:8px 14px;border-radius:8px;border:1px solid var(--line);
+  background:var(--panel-2);color:var(--text);
+  transition:background .15s,border-color .15s,transform .05s;
+}
+.btn:hover{background:#222740;border-color:#39405c}
+.btn:active{transform:translateY(1px)}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
+.btn-accent:hover{background:#9c8ff8;border-color:#9c8ff8}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn-ghost:hover{background:var(--panel-2);color:var(--text);border-color:var(--line)}
+.btn-danger{color:var(--danger)}
+.btn-danger:hover{border-color:var(--danger)}
+
+/* ---------- fields ---------- */
+.field{margin-bottom:14px}
+.field label{display:block;margin-bottom:6px}
+.input{
+  width:100%;padding:9px 11px;border-radius:8px;
+  border:1px solid var(--line);background:var(--ink);color:var(--text);
+  font-family:var(--mono);font-size:13.5px;
+  transition:border-color .15s;
+}
+.input:focus{border-color:var(--accent)}
+.input::placeholder{color:#565d75}
+.hint{font-size:12.5px;color:var(--muted);margin-top:5px}
+
+/* ---------- connect view ---------- */
+#connect{min-height:100%;display:flex;align-items:center;justify-content:center;padding:32px 16px}
+.card{
+  width:100%;max-width:460px;background:var(--panel);
+  border:1px solid var(--line);border-radius:14px;padding:30px 28px 24px;
+}
+.wordmark{font-family:var(--mono);font-weight:700;font-size:22px;letter-spacing:-.02em}
+.wordmark .tick{color:var(--accent)}
+.tagline{color:var(--muted);margin:4px 0 24px;font-size:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:13px;color:var(--muted);margin:4px 0 18px}
+.check input{margin-top:3px;accent-color:var(--accent)}
+.err{
+  display:none;margin:0 0 14px;padding:10px 12px;border-radius:8px;
+  border:1px solid rgba(240,113,110,.4);background:rgba(240,113,110,.08);
+  color:#f5a09e;font-size:13px;font-family:var(--mono);white-space:pre-wrap;
+}
+.err.show{display:block}
+details.help{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+details.help summary{cursor:pointer;color:var(--muted);font-size:13px;font-family:var(--mono)}
+details.help summary:hover{color:var(--text)}
+details.help ol{margin:10px 0 4px;padding-left:20px;color:var(--muted);font-size:13.5px}
+details.help li{margin-bottom:6px}
+details.help code{font-family:var(--mono);font-size:12.5px;background:var(--ink);border:1px solid var(--line);padding:1px 5px;border-radius:5px}
+
+/* ---------- app shell ---------- */
+#app{display:none;height:100vh;height:100dvh;flex-direction:column}
+#app.on{display:flex}
+header{
+  display:flex;align-items:center;gap:14px;
+  padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);
+  flex:0 0 auto;min-height:52px;
+}
+header .wordmark{font-size:16px}
+#remote{font-family:var(--mono);font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#remote b{color:var(--text);font-weight:500}
+header .spacer{flex:1}
+
+.shell{flex:1;display:flex;min-height:0}
+
+/* sidebar */
+aside{
+  width:248px;flex:0 0 auto;border-right:1px solid var(--line);
+  background:var(--panel);display:flex;flex-direction:column;min-height:0;
+}
+aside .head{padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between}
+#filelist{list-style:none;margin:0;padding:4px 8px;overflow:auto;flex:1}
+#filelist li{margin:2px 0}
+.fbtn{
+  width:100%;text-align:left;display:flex;align-items:center;gap:8px;
+  padding:7px 9px;border-radius:7px;border:1px solid transparent;background:none;
+  font-family:var(--mono);font-size:13px;color:var(--text);
+}
+.fbtn:hover{background:var(--panel-2)}
+.fbtn.active{background:var(--accent-soft);border-color:rgba(139,124,246,.35)}
+.fbtn .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fbtn .sz{font-size:11px;color:var(--muted)}
+.fbtn .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:0 0 auto;opacity:0}
+.fbtn.dirty .dot{opacity:1}
+.newrow{padding:10px;border-top:1px solid var(--line);display:flex;gap:8px}
+.newrow .input{flex:1;padding:7px 9px;font-size:12.5px}
+.empty{padding:18px 16px;color:var(--muted);font-size:13.5px}
+.empty .btn{margin-top:12px;width:100%}
+
+/* main / editor */
+main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+.toolbar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:10px 16px;border-bottom:1px solid var(--line);flex:0 0 auto;
+}
+#fname{font-family:var(--mono);font-size:13.5px}
+#fname .dirtymark{color:var(--accent);font-weight:700;margin-left:4px;visibility:hidden}
+#fname.dirty .dirtymark{visibility:visible}
+#commitmsg{flex:1;min-width:160px;max-width:440px;padding:7px 10px;font-size:12.5px}
+.tabs{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tabs button{
+  font-family:var(--mono);font-size:12px;padding:7px 12px;border:0;
+  background:transparent;color:var(--muted);
+}
+.tabs button.on{background:var(--panel-2);color:var(--text)}
+
+#editorwrap{flex:1;display:flex;min-height:0;position:relative}
+#editor{
+  flex:1;resize:none;border:0;padding:18px 20px;
+  background:var(--ink);color:var(--text);
+  font-family:var(--mono);font-size:13.5px;line-height:1.65;
+  tab-size:2;white-space:pre;overflow:auto;
+}
+#preview{flex:1;display:none;border:0;background:#fff}
+#editorwrap.previewing #editor{display:none}
+#editorwrap.previewing #preview{display:block}
+.idle{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:var(--muted);font-family:var(--mono);font-size:13px;background:var(--ink);
+}
+
+/* signature: the commit trail */
+.trail{
+  flex:0 0 auto;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  padding:8px 16px;border-top:1px solid var(--line);background:var(--panel);
+  font-family:var(--mono);font-size:11.5px;color:var(--muted);min-height:34px;
+}
+.trail b{color:var(--text);font-weight:500}
+.trail .sha{color:var(--accent)}
+.trail .status{
+  padding:2px 7px;border-radius:999px;border:1px solid var(--line);
+  background:var(--ink);color:var(--muted);max-width:360px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.trail .status.ok{border-color:rgba(95,217,164,.45);color:var(--ok)}
+.trail .status.warn{border-color:rgba(242,177,80,.5);color:var(--warn)}
+.trail .status.err{border-color:rgba(240,113,110,.55);color:var(--danger)}
+.trail .pulse{animation:pulse 1.2s ease-out 1}
+@keyframes pulse{0%{color:var(--ok)}100%{color:var(--accent)}}
+@media (prefers-reduced-motion:reduce){.trail .pulse{animation:none}}
+
+
+
+/* media drawer */
+.media-drawer{
+  width:312px;flex:0 0 auto;border-left:1px solid var(--line);
+  background:var(--panel);display:none;flex-direction:column;min-height:0;
+}
+.media-drawer.on{display:flex}
+.media-drawer .head{
+  padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.media-meta{padding:0 14px 10px;color:var(--muted);font-family:var(--mono);font-size:11.5px;word-break:break-all}
+.dropzone{
+  margin:4px 14px 12px;padding:14px 12px;border:1px dashed #3b435d;border-radius:10px;
+  background:rgba(139,124,246,.06);display:flex;flex-direction:column;gap:4px;
+  align-items:center;justify-content:center;text-align:center;color:var(--muted);
+  font-family:var(--mono);font-size:12px;min-height:86px;cursor:pointer;
+}
+.dropzone:hover,.dropzone.drag{border-color:var(--accent);background:var(--accent-soft);color:var(--text)}
+.dropzone strong{color:var(--text);font-size:12.5px}
+.dropzone small{font-size:11px;color:var(--muted)}
+.media-list{overflow:auto;flex:1;padding:0 10px 10px}
+.media-item{
+  display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:center;
+  border:1px solid var(--line);border-radius:10px;background:var(--ink);
+  margin:0 0 8px;padding:8px;
+}
+.media-thumb{
+  width:52px;height:52px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);
+  object-fit:cover;display:block;
+}
+.media-info{min-width:0}
+.media-name{font-family:var(--mono);font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.media-url{font-family:var(--mono);font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.media-actions{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.media-actions .btn{font-size:11px;padding:5px 8px;border-radius:7px}
+.media-empty{padding:14px;color:var(--muted);font-size:13px;font-family:var(--mono)}
+
+/* settings drawer */
+.settings-drawer{
+  width:312px;flex:0 0 auto;border-left:1px solid var(--line);
+  background:var(--panel);display:none;flex-direction:column;min-height:0;
+}
+.settings-drawer.on{display:flex}
+.settings-drawer .head{
+  padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.settings-meta{padding:0 14px 10px;color:var(--muted);font-family:var(--mono);font-size:11.5px;word-break:break-all}
+.settings-body{padding:4px 14px 14px;overflow:auto;flex:1}
+.settings-body .field{margin-bottom:12px}
+.settings-body .hint{font-size:12px}
+.settings-actions{padding:12px 14px;border-top:1px solid var(--line)}
+.settings-actions .btn{width:100%}
+
+/* conflict banner, styled as a merge prompt */
+#conflict{
+  display:none;flex:0 0 auto;padding:12px 16px;border-bottom:1px solid rgba(242,177,80,.45);
+  background:rgba(242,177,80,.07);font-family:var(--mono);font-size:12.5px;
+}
+#conflict.show{display:block}
+#conflict .head7{color:var(--warn);font-weight:700;white-space:pre-wrap;margin-bottom:8px}
+#conflict .acts{display:flex;gap:10px;flex-wrap:wrap}
+
+/* toasts */
+#toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:50}
+.toast{
+  font-family:var(--mono);font-size:12.5px;padding:10px 14px;border-radius:8px;
+  border:1px solid var(--line);background:var(--panel);color:var(--text);
+  box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:340px;
+}
+.toast.ok{border-color:rgba(95,217,164,.5)}
+.toast.err{border-color:rgba(240,113,110,.55)}
+
+/* responsive */
+@media (max-width:760px){
+  .shell{flex-direction:column}
+  aside{width:100%;max-height:38vh;border-right:0;border-bottom:1px solid var(--line)}
+  .media-drawer,.settings-drawer{width:100%;max-height:42vh;border-left:0;border-top:1px solid var(--line)}
+  #remote{display:none}
+  #commitmsg{max-width:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= connect ================= -->
+<section id="connect">
+  <form class="card" id="connectform" autocomplete="off">
+    <div class="wordmark">git<span class="tick">⌥</span>cms</div>
+    <p class="tagline">Your repo is the database. This page is the whole admin.</p>
+
+    <div class="err" id="cerr"></div>
+
+    <div class="row2">
+      <div class="field">
+        <label class="label" for="f-owner">owner</label>
+        <input class="input" id="f-owner" placeholder="zsolt" required>
+      </div>
+      <div class="field">
+        <label class="label" for="f-repo">site repo</label>
+        <input class="input" id="f-repo" placeholder="my-site — or paste its URL" required>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label class="label" for="f-branch">branch</label>
+        <input class="input" id="f-branch" value="main" required>
+      </div>
+      <div class="field">
+        <label class="label" for="f-config-path">config file</label>
+        <input class="input" id="f-config-path" value="gitcms.config.json" required>
+      </div>
+    </div>
+    <div class="hint" style="margin:-4px 0 14px">Project paths are loaded from <span class="m">gitcms.config.json</span>. If it does not exist, GitCMS uses safe defaults and you can save them from Settings.</div>
+    <div class="field">
+      <label class="label" for="f-token">fine-grained token</label>
+      <input class="input" id="f-token" type="password" placeholder="github_pat_…" required>
+      <div class="hint">Scope it to the site repo only, Contents: read &amp; write. It is sent only to api.github.com.</div>
+    </div>
+    <label class="check">
+      <input type="checkbox" id="f-remember">
+      <span>Remember the token in this browser (localStorage). Leave off on shared machines; the rest of the form is remembered either way.</span>
+    </label>
+
+    <button class="btn btn-accent" id="connectbtn" type="submit" style="width:100%">Connect</button>
+
+    <details class="help">
+      <summary>How to create the token</summary>
+      <ol>
+        <li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → Generate new token.</li>
+        <li>Resource owner: your account. Repository access: <b>Only select repositories</b> → the site repo.</li>
+        <li>Permissions → Repository permissions → <b>Contents: Read and write</b>. Nothing else.</li>
+        <li>Pick a short expiry. Paste it above — it never touches any repo.</li>
+      </ol>
+    </details>
+  </form>
+</section>
+
+<!-- ================= app ================= -->
+<section id="app">
+  <header>
+    <div class="wordmark">git<span class="tick">⌥</span>cms</div>
+    <div id="remote"></div>
+    <div class="spacer"></div>
+    <button class="btn btn-ghost" id="settingsbtn" disabled>settings</button>
+    <button class="btn btn-ghost" id="refreshbtn" title="Reload the file list from GitHub">↻ refresh</button>
+    <button class="btn btn-ghost" id="disconnectbtn">disconnect</button>
+  </header>
+
+  <div id="conflict">
+    <div class="head7" id="conflicttext"></div>
+    <div class="acts">
+      <button class="btn" id="keepminebtn">keep mine — commit over theirs</button>
+      <button class="btn" id="taketheirsbtn">take GitHub's — discard my edit</button>
+    </div>
+  </div>
+
+  <div class="shell">
+    <aside>
+      <div class="head">
+        <span class="label">partials</span>
+        <span class="label" id="filecount"></span>
+      </div>
+      <ul id="filelist"></ul>
+      <div class="empty" id="emptystate" style="display:none"></div>
+      <div class="newrow">
+        <input class="input" id="newname" placeholder="new-section.html" spellcheck="false">
+        <button class="btn" id="newbtn" title="Create a new partial">+ new</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="toolbar">
+        <span id="fname"><span class="path">no file open</span><span class="dirtymark">±</span></span>
+        <input class="input" id="commitmsg" placeholder="commit message (optional)" spellcheck="false" disabled>
+        <div class="tabs">
+          <button type="button" id="tab-edit" class="on">edit</button>
+          <button type="button" id="tab-preview">preview</button>
+        </div>
+        <button class="btn" id="mediabtn" disabled>media</button>
+        <button class="btn btn-accent" id="savebtn" disabled>Commit</button>
+        <button class="btn btn-ghost btn-danger" id="deletebtn" disabled title="Delete this partial from the repo">delete</button>
+      </div>
+
+      <div id="editorwrap">
+        <textarea id="editor" spellcheck="false" disabled></textarea>
+        <iframe id="preview" title="Standalone preview of the partial" sandbox=""></iframe>
+        <div class="idle" id="idle">pick a partial on the left, or create one</div>
+      </div>
+
+      <div class="trail" id="trail">
+        <span>blob <b class="sha" id="t-blob">—</b></span>
+        <span><b id="t-size">—</b></span>
+        <span id="t-last">nothing committed this session</span>
+        <span class="status" id="t-status" title="Current editor status">ready</span>
+        <span style="margin-left:auto">⌘/Ctrl+S commits</span>
+      </div>
+    </main>
+    <section class="media-drawer" id="mediaDrawer" aria-label="Media library">
+      <div class="head">
+        <span class="label">media</span>
+        <button class="btn btn-ghost" id="closemediabtn" type="button" title="Close media drawer">×</button>
+      </div>
+      <div class="media-meta" id="mediapathlabel">media folder not connected</div>
+      <label class="dropzone" id="mediadrop">
+        <input type="file" id="mediafile" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+        <strong>drop image or click to upload</strong>
+        <small>jpg, png, webp, gif · max 5 MB each</small>
+      </label>
+      <div class="media-list" id="medialist"></div>
+      <div class="media-empty" id="mediaempty" style="display:none"></div>
+    </section>
+    <section class="settings-drawer" id="settingsDrawer" aria-label="GitCMS settings">
+      <div class="head">
+        <span class="label">settings</span>
+        <button class="btn btn-ghost" id="closesettingsbtn" type="button" title="Close settings">×</button>
+      </div>
+      <div class="settings-meta" id="settingsmetalabel">config not connected</div>
+      <div class="settings-body">
+        <div class="field">
+          <label class="label" for="s-partials-dir">partials folder</label>
+          <input class="input" id="s-partials-dir" value="partials" spellcheck="false">
+          <div class="hint">Repo folder containing editable HTML fragments.</div>
+        </div>
+        <div class="field">
+          <label class="label" for="s-media-dir">media folder</label>
+          <input class="input" id="s-media-dir" value="media" spellcheck="false">
+          <div class="hint">Repo folder where uploaded images are committed.</div>
+        </div>
+        <div class="field">
+          <label class="label" for="s-media-public">public media path</label>
+          <input class="input" id="s-media-public" value="./media/" spellcheck="false">
+          <div class="hint">Path inserted into HTML, e.g. <span class="m">./media/</span> for GitHub Pages project sites.</div>
+        </div>
+        <div class="field">
+          <label class="label" for="s-max-upload">max upload bytes</label>
+          <input class="input" id="s-max-upload" value="5242880" spellcheck="false">
+        </div>
+        <div class="field">
+          <label class="label" for="s-allowed-ext">allowed image extensions</label>
+          <input class="input" id="s-allowed-ext" value="jpg, jpeg, png, webp, gif" spellcheck="false">
+        </div>
+        <div class="field">
+          <label class="label" for="s-source-dir">build source folder</label>
+          <input class="input" id="s-source-dir" value="src" spellcheck="false">
+          <div class="hint">Source folder used by the build workflow. For this project, use <span class="m">src</span>.</div>
+        </div>
+        <div class="field">
+          <label class="label" for="s-output-dir">build output folder</label>
+          <input class="input" id="s-output-dir" value="dist" spellcheck="false">
+          <div class="hint">Generated public folder deployed by GitHub Pages. Normally <span class="m">dist</span>.</div>
+        </div>
+      </div>
+      <div class="settings-actions">
+        <button class="btn btn-accent" id="s-savebtn" type="button">Save config</button>
+      </div>
+    </section>
+  </div>
+</section>
+
+<div id="toasts"></div>
+
+<script>
+"use strict";
+
+/*
+  GitCMS implementation path
+  1. Working procedural MVP: original draft proved the GitHub-backed fragment editor flow.
+  2. Single-file OOP MVP: this file keeps one deployable HTML document but separates concerns into classes.
+  3. Stable file editor: dirty-state, commit disabling, conflict flow, safe localStorage fallback, and editor lifecycle are handled centrally.
+  3.1 Stage 2.1: dedicated preview renderer, small status layer, and lightweight pre-commit validation.
+  3.2 Stage 2.2: media module, media drawer, image upload, insert image tag, and copy public path.
+  3.3 Stage 2.2.1: repo-level gitcms.config.json for content/media paths.
+  4. Better UI: next pass; keep structural code stable first.
+  5. Optional manifest / stronger validation: add only after the editor and media workflow are solid.
+*/
+
+(() => {
+  /* ================= constants / helpers ================= */
+  const API = "https://api.github.com";
+  const LS_KEY = "gitcms.v1";
+  const $ = selector => document.querySelector(selector);
+
+  const esc = value => String(value).replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[char]));
+
+  const fmtBytes = bytes => bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
+  const textSize = text => new TextEncoder().encode(text).length;
+  const segEncode = path => path.split("/").map(encodeURIComponent).join("/");
+  const attrEsc = value => esc(value).replace(/`/g, "&#96;");
+
+  function mediaPlaceholderDataUrl(name){
+    const label = String(name || "IMG").slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="104" height="104" viewBox="0 0 104 104">
+      <rect width="104" height="104" rx="14" fill="#1b1f2e"/>
+      <path d="M18 72l19-22 13 15 10-12 26 31H18z" fill="#39405c"/>
+      <circle cx="72" cy="34" r="10" fill="#39405c"/>
+      <text x="52" y="58" text-anchor="middle" font-family="monospace" font-size="16" fill="#8d93a9">${label || "IMG"}</text>
+    </svg>`;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+
+  function arrayBufferToBase64(buffer){
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000){
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(binary);
+  }
+
+  function enc64(str){
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 0x8000){
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(bin);
+  }
+
+  function dec64(b64){
+    const bin = atob(String(b64 || "").replace(/\s/g, ""));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  function normalizeRepoFields(owner, repo){
+    const fromUrl = value => {
+      const match = String(value).match(/github\.com[\/:]([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?(?:[\/?#].*)?$/);
+      return match ? { owner: match[1], repo: match[2] } : null;
+    };
+
+    const fromRemote = fromUrl(repo) || fromUrl(owner);
+    if (fromRemote) return fromRemote;
+
+    const shorthand = String(repo).match(/^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)$/);
+    if (shorthand) return { owner: shorthand[1], repo: shorthand[2] };
+
+    return { owner, repo: String(repo).replace(/\.git$/, "") };
+  }
+
+
+  function cleanRepoDir(value, fallback){
+    return String(value || fallback || "")
+      .trim()
+      .replace(/^\/+|\/+$/g, "") || fallback;
+  }
+
+  function normalizePublicPath(value, fallback){
+    let path = String(value || fallback || "").trim();
+    if (!path) path = "./media/";
+    if (!path.endsWith("/")) path += "/";
+    return path;
+  }
+
+  function defaultProjectConfig(){
+    return {
+      version: 1,
+      content: {
+        partialsDir: "src/partials",
+        partialLinkRel: "partial"
+      },
+      media: {
+        mediaDir: "src/media",
+        publicPath: "./media/",
+        maxUploadBytes: 5242880,
+        allowedExtensions: ["jpg", "jpeg", "png", "webp", "gif"]
+      },
+      preview: {
+        css: []
+      },
+      build: {
+        sourceDir: "src",
+        outputDir: "dist"
+      }
+    };
+  }
+
+  function normalizeProjectConfig(rawConfig){
+    const defaults = defaultProjectConfig();
+    const raw = rawConfig && typeof rawConfig === "object" ? rawConfig : {};
+    const content = raw.content && typeof raw.content === "object" ? raw.content : {};
+    const media = raw.media && typeof raw.media === "object" ? raw.media : {};
+    const preview = raw.preview && typeof raw.preview === "object" ? raw.preview : {};
+    const build = raw.build && typeof raw.build === "object" ? raw.build : {};
+
+    const allowedExtensions = Array.isArray(media.allowedExtensions)
+      ? media.allowedExtensions
+          .map(item => String(item).trim().replace(/^\./, "").toLowerCase())
+          .filter(Boolean)
+      : defaults.media.allowedExtensions;
+
+    return {
+      version: Number(raw.version) || defaults.version,
+      content: {
+        partialsDir: cleanRepoDir(content.partialsDir || raw.dir, defaults.content.partialsDir),
+        partialLinkRel: String(content.partialLinkRel || defaults.content.partialLinkRel).trim() || defaults.content.partialLinkRel
+      },
+      media: {
+        mediaDir: cleanRepoDir(media.mediaDir || raw.mediaDir, defaults.media.mediaDir),
+        publicPath: normalizePublicPath(media.publicPath || raw.publicMediaPath, defaults.media.publicPath),
+        maxUploadBytes: Number(media.maxUploadBytes) > 0 ? Number(media.maxUploadBytes) : defaults.media.maxUploadBytes,
+        allowedExtensions: allowedExtensions.length ? [...new Set(allowedExtensions)] : defaults.media.allowedExtensions
+      },
+      preview: {
+        css: Array.isArray(preview.css) ? preview.css.map(String) : defaults.preview.css
+      },
+      build: {
+        sourceDir: String(build.sourceDir || defaults.build.sourceDir).trim() || defaults.build.sourceDir,
+        outputDir: String(build.outputDir || defaults.build.outputDir).trim() || defaults.build.outputDir
+      }
+    };
+  }
+
+  function validateProjectConfig(config){
+    const normalized = normalizeProjectConfig(config);
+    const sourceDir = normalized.build.sourceDir;
+    const outputDir = normalized.build.outputDir;
+
+    if (sourceDir === outputDir){
+      throw new Error("Config error: build source folder and output folder cannot be the same.");
+    }
+
+    if (outputDir && sourceDir && outputDir.startsWith(sourceDir + "/")){
+      throw new Error("Config error: build output folder should not be inside the source folder.");
+    }
+
+    if ([sourceDir, outputDir, normalized.content.partialsDir, normalized.media.mediaDir].some(value => value.includes(".."))){
+      throw new Error("Config error: repo paths must not contain '..'.");
+    }
+
+    return normalized;
+  }
+
+  function friendly(error){
+    switch (error.status){
+      case 0:
+        return "Network error — check your connection, browser permissions, or api.github.com access.";
+      case 401:
+        return "Token rejected (401). It may be expired or mistyped.";
+      case 403:
+        return `Forbidden (403): ${error.message} — often rate limiting or missing token permission.`;
+      case 404:
+        return "Not found (404). Check owner, repo, branch and folder — a fine-grained token without repo access can also show as 404.";
+      default:
+        return error.message;
+    }
+  }
+
+  /* ================= infrastructure ================= */
+  class SafeStore {
+    constructor(key){
+      this.key = key;
+      this.memory = null;
+    }
+
+    get(){
+      try {
+        return JSON.parse(localStorage.getItem(this.key)) || this.memory;
+      } catch(_error){
+        return this.memory;
+      }
+    }
+
+    set(value){
+      this.memory = value;
+      try {
+        localStorage.setItem(this.key, JSON.stringify(value));
+      } catch(_error){}
+    }
+
+    clear(){
+      this.memory = null;
+      try {
+        localStorage.removeItem(this.key);
+      } catch(_error){}
+    }
+  }
+
+  class GitHubClient {
+    constructor(config){
+      this.config = config;
+    }
+
+    async request(path, { method = "GET", body } = {}){
+      let response;
+      const isGet = method.toUpperCase() === "GET";
+      const cacheBustedPath = isGet
+        ? path + (path.includes("?") ? "&" : "?") + `gitcms_cache=${Date.now()}-${Math.random().toString(36).slice(2)}`
+        : path;
+
+      try {
+        response = await fetch(API + cacheBustedPath, {
+          method,
+          cache: isGet ? "no-store" : "default",
+          headers: {
+            "Authorization": `Bearer ${this.config.token}`,
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            ...(body ? { "Content-Type": "application/json" } : {})
+          },
+          body: body ? JSON.stringify(body) : undefined
+        });
+      } catch(_networkError){
+        const error = new Error("Network error — check your connection, browser permissions, or api.github.com access.");
+        error.status = 0;
+        throw error;
+      }
+
+      if (!response.ok){
+        let message = "";
+        try {
+          message = (await response.json()).message || "";
+        } catch(_jsonError){}
+        const error = new Error(message || `${response.status} ${response.statusText}`);
+        error.status = response.status;
+        throw error;
+      }
+
+      return response.status === 204 ? null : response.json();
+    }
+
+    repoPath(path = ""){
+      const { owner, repo } = this.config;
+      return `/repos/${owner}/${repo}${path}`;
+    }
+
+    branchRefPath(){
+      return `/git/refs/heads/${segEncode(this.config.branch)}`;
+    }
+
+    assertRepoAccess(){
+      return this.request(this.repoPath());
+    }
+
+    /* Contents API remains useful for config and binary media uploads. */
+    listDirectory(dir){
+      const branch = encodeURIComponent(this.config.branch);
+      return this.request(this.repoPath(`/contents/${segEncode(dir)}?ref=${branch}`));
+    }
+
+    readFile(path){
+      const branch = encodeURIComponent(this.config.branch);
+      return this.request(this.repoPath(`/contents/${segEncode(path)}?ref=${branch}`));
+    }
+
+    writeFile(path, { content, sha, message }){
+      const body = {
+        message,
+        content: enc64(content),
+        branch: this.config.branch
+      };
+      if (sha) body.sha = sha;
+
+      return this.request(this.repoPath(`/contents/${segEncode(path)}`), {
+        method: "PUT",
+        body
+      });
+    }
+
+    writeEncodedFile(path, { encodedContent, sha, message }){
+      const body = {
+        message,
+        content: encodedContent,
+        branch: this.config.branch
+      };
+      if (sha) body.sha = sha;
+
+      return this.request(this.repoPath(`/contents/${segEncode(path)}`), {
+        method: "PUT",
+        body
+      });
+    }
+
+    deleteFile(path, { sha, message }){
+      return this.request(this.repoPath(`/contents/${segEncode(path)}`), {
+        method: "DELETE",
+        body: {
+          message,
+          sha,
+          branch: this.config.branch
+        }
+      });
+    }
+
+    /* Git Data API: immutable commit/tree/blob model for CMS-critical fragment edits. */
+    async getBranchHead(){
+      const ref = await this.request(this.repoPath(this.branchRefPath()));
+      return ref.object.sha;
+    }
+
+    getCommit(commitSha){
+      return this.request(this.repoPath(`/git/commits/${encodeURIComponent(commitSha)}`));
+    }
+
+    getTree(treeSha, { recursive = true } = {}){
+      const suffix = recursive ? "?recursive=1" : "";
+      return this.request(this.repoPath(`/git/trees/${encodeURIComponent(treeSha)}${suffix}`));
+    }
+
+    getBlob(blobSha){
+      return this.request(this.repoPath(`/git/blobs/${encodeURIComponent(blobSha)}`));
+    }
+
+    createBlob(text){
+      return this.request(this.repoPath("/git/blobs"), {
+        method: "POST",
+        body: {
+          content: text,
+          encoding: "utf-8"
+        }
+      });
+    }
+
+    createTree(baseTreeSha, treeChanges){
+      return this.request(this.repoPath("/git/trees"), {
+        method: "POST",
+        body: {
+          base_tree: baseTreeSha,
+          tree: treeChanges
+        }
+      });
+    }
+
+    createCommit({ message, treeSha, parentSha }){
+      return this.request(this.repoPath("/git/commits"), {
+        method: "POST",
+        body: {
+          message,
+          tree: treeSha,
+          parents: [parentSha]
+        }
+      });
+    }
+
+    updateBranchHead(commitSha){
+      return this.request(this.repoPath(this.branchRefPath()), {
+        method: "PATCH",
+        body: {
+          sha: commitSha,
+          force: false
+        }
+      });
+    }
+  }
+
+  class ConfigRepository {
+    constructor(githubClient, path = "gitcms.config.json"){
+      this.github = githubClient;
+      this.path = String(path || "gitcms.config.json").trim().replace(/^\/+/, "") || "gitcms.config.json";
+    }
+
+    async load(){
+      try {
+        const file = await this.github.readFile(this.path);
+        const parsed = JSON.parse(dec64(file.content));
+        return {
+          config: normalizeProjectConfig(parsed),
+          sha: file.sha,
+          exists: true,
+          path: file.path || this.path
+        };
+      } catch(error){
+        if (error.status === 404){
+          return {
+            config: defaultProjectConfig(),
+            sha: null,
+            exists: false,
+            path: this.path
+          };
+        }
+        if (error instanceof SyntaxError){
+          const wrapped = new Error(`${this.path} is not valid JSON.`);
+          wrapped.status = 400;
+          throw wrapped;
+        }
+        throw error;
+      }
+    }
+
+    async save(config, sha){
+      const normalized = normalizeProjectConfig(config);
+      const json = `${JSON.stringify(normalized, null, 2)}\n`;
+      const result = await this.github.writeFile(this.path, {
+        content: json,
+        sha,
+        message: `gitcms: update ${this.path}`
+      });
+
+      return {
+        config: normalized,
+        sha: result.content.sha,
+        commitSha: result.commit.sha,
+        path: result.content.path || this.path,
+        exists: true
+      };
+    }
+  }
+
+  class FragmentRepository {
+    constructor(githubClient, dir){
+      this.github = githubClient;
+      this.dir = dir.replace(/^\/+|\/+$/g, "") || "partials";
+    }
+
+    async snapshot(){
+      const headSha = await this.github.getBranchHead();
+      const commit = await this.github.getCommit(headSha);
+      const treeSha = commit.tree.sha;
+      const tree = await this.github.getTree(treeSha, { recursive: true });
+
+      return {
+        headSha,
+        treeSha,
+        entries: Array.isArray(tree.tree) ? tree.tree : []
+      };
+    }
+
+    entryFor(snapshot, path){
+      return snapshot.entries.find(entry => entry.path === path && entry.type === "blob") || null;
+    }
+
+    fileName(path){
+      return String(path || "").split("/").pop();
+    }
+
+    conflict(message, extra = {}){
+      const error = new Error(message);
+      error.status = 409;
+      Object.assign(error, extra);
+      return error;
+    }
+
+    async list(){
+      const snapshot = await this.snapshot();
+      const prefix = `${this.dir}/`;
+
+      return snapshot.entries
+        .filter(entry => entry.type === "blob")
+        .filter(entry => entry.path.startsWith(prefix))
+        .filter(entry => !entry.path.slice(prefix.length).includes("/"))
+        .filter(entry => /\.html?$/i.test(this.fileName(entry.path)))
+        .map(entry => ({
+          name: this.fileName(entry.path),
+          path: entry.path,
+          sha: entry.sha,
+          blobSha: entry.sha,
+          baseCommitSha: snapshot.headSha,
+          size: entry.size || 0
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    async read(path){
+      const snapshot = await this.snapshot();
+      const entry = this.entryFor(snapshot, path);
+
+      if (!entry){
+        const error = new Error(`${path} was not found on ${this.github.config.branch}.`);
+        error.status = 404;
+        throw error;
+      }
+
+      if ((entry.size || 0) > 1000000){
+        const error = new Error("File is over 1 MB. Partials should be small.");
+        error.status = 400;
+        throw error;
+      }
+
+      const blob = await this.github.getBlob(entry.sha);
+      const text = blob.encoding === "base64" ? dec64(blob.content) : String(blob.content || "");
+
+      return {
+        name: this.fileName(entry.path),
+        path: entry.path,
+        sha: entry.sha,
+        blobSha: entry.sha,
+        baseBlobSha: entry.sha,
+        baseCommitSha: snapshot.headSha,
+        baseTreeSha: snapshot.treeSha,
+        size: entry.size || textSize(text),
+        text
+      };
+    }
+
+    async save(fragment, text, message, overrideSha){
+      const force = !!overrideSha;
+      let lastUpdateError = null;
+
+      for (let attempt = 0; attempt < 2; attempt += 1){
+        const snapshot = await this.snapshot();
+        const latestEntry = this.entryFor(snapshot, fragment.path);
+
+        if (!latestEntry){
+          throw this.conflict(`${fragment.path} was deleted on GitHub before this save.`);
+        }
+
+        const expectedSha = overrideSha || fragment.sha;
+        if (!force && latestEntry.sha !== expectedSha){
+          throw this.conflict(`${fragment.path} changed on GitHub since you opened it.`, {
+            remoteBlobSha: latestEntry.sha,
+            localBlobSha: expectedSha
+          });
+        }
+
+        const newBlob = await this.github.createBlob(text);
+        const newTree = await this.github.createTree(snapshot.treeSha, [{
+          path: fragment.path,
+          mode: "100644",
+          type: "blob",
+          sha: newBlob.sha
+        }]);
+        const newCommit = await this.github.createCommit({
+          message: message || `gitcms: update ${fragment.name}`,
+          treeSha: newTree.sha,
+          parentSha: snapshot.headSha
+        });
+
+        try {
+          await this.github.updateBranchHead(newCommit.sha);
+          return {
+            content: {
+              path: fragment.path,
+              sha: newBlob.sha,
+              size: textSize(text)
+            },
+            commit: {
+              sha: newCommit.sha
+            },
+            repository: {
+              parentCommitSha: snapshot.headSha,
+              treeSha: newTree.sha
+            }
+          };
+        } catch(error){
+          if (error.status === 409 || error.status === 422){
+            lastUpdateError = error;
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      throw lastUpdateError || this.conflict("The branch moved during save. Try again.");
+    }
+
+    async create(name){
+      const normalizedName = this.normalizeName(name);
+      const path = `${this.dir}/${normalizedName}`;
+      const sectionClass = normalizedName.replace(/\.html$/, "");
+      const seed = `<!-- ${path} -->\n<section class="${sectionClass}">\n  <h2>New section</h2>\n  <p>Edit me, then commit.</p>\n</section>\n`;
+      let lastUpdateError = null;
+
+      for (let attempt = 0; attempt < 2; attempt += 1){
+        const snapshot = await this.snapshot();
+        if (this.entryFor(snapshot, path)){
+          const error = new Error(`${normalizedName} already exists`);
+          error.status = 422;
+          throw error;
+        }
+
+        const newBlob = await this.github.createBlob(seed);
+        const newTree = await this.github.createTree(snapshot.treeSha, [{
+          path,
+          mode: "100644",
+          type: "blob",
+          sha: newBlob.sha
+        }]);
+        const newCommit = await this.github.createCommit({
+          message: `gitcms: create ${normalizedName}`,
+          treeSha: newTree.sha,
+          parentSha: snapshot.headSha
+        });
+
+        try {
+          await this.github.updateBranchHead(newCommit.sha);
+          return {
+            name: normalizedName,
+            path,
+            sha: newBlob.sha,
+            blobSha: newBlob.sha,
+            baseBlobSha: newBlob.sha,
+            baseCommitSha: newCommit.sha,
+            text: seed,
+            commitSha: newCommit.sha
+          };
+        } catch(error){
+          if (error.status === 409 || error.status === 422){
+            lastUpdateError = error;
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      throw lastUpdateError || this.conflict("The branch moved during create. Try again.");
+    }
+
+    async delete(fragment){
+      let lastUpdateError = null;
+
+      for (let attempt = 0; attempt < 2; attempt += 1){
+        const snapshot = await this.snapshot();
+        const latestEntry = this.entryFor(snapshot, fragment.path);
+
+        if (!latestEntry){
+          return {
+            content: { path: fragment.path, sha: null },
+            commit: { sha: snapshot.headSha },
+            alreadyDeleted: true
+          };
+        }
+
+        if (latestEntry.sha !== fragment.sha){
+          throw this.conflict(`${fragment.path} changed on GitHub before delete.`);
+        }
+
+        const newTree = await this.github.createTree(snapshot.treeSha, [{
+          path: fragment.path,
+          mode: "100644",
+          type: "blob",
+          sha: null
+        }]);
+        const newCommit = await this.github.createCommit({
+          message: `gitcms: delete ${fragment.name}`,
+          treeSha: newTree.sha,
+          parentSha: snapshot.headSha
+        });
+
+        try {
+          await this.github.updateBranchHead(newCommit.sha);
+          return {
+            content: { path: fragment.path, sha: null },
+            commit: { sha: newCommit.sha }
+          };
+        } catch(error){
+          if (error.status === 409 || error.status === 422){
+            lastUpdateError = error;
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      throw lastUpdateError || this.conflict("The branch moved during delete. Try again.");
+    }
+
+    normalizeName(rawName){
+      const name = String(rawName || "").trim().toLowerCase();
+      if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.html$/.test(name) || name.includes("..")){
+        const error = new Error("Name it like hero.html — letters, digits, - _ . only");
+        error.status = 400;
+        throw error;
+      }
+      return name;
+    }
+  }
+
+
+
+
+  class MediaRepository {
+    constructor(githubClient, mediaConfig){
+      const config = mediaConfig || defaultProjectConfig().media;
+      this.github = githubClient;
+      this.dir = cleanRepoDir(config.mediaDir, "media");
+      this.publicPath = normalizePublicPath(config.publicPath, `./${this.dir}/`);
+      this.maxBytes = Number(config.maxUploadBytes) > 0 ? Number(config.maxUploadBytes) : 5 * 1024 * 1024;
+      const extensions = Array.isArray(config.allowedExtensions) ? config.allowedExtensions : ["jpg", "jpeg", "png", "webp", "gif"];
+      this.allowedExtensions = new Set(extensions.map(item => String(item).replace(/^\./, "").toLowerCase()));
+    }
+
+    async list(){
+      let entries;
+      try {
+        entries = await this.github.listDirectory(this.dir);
+      } catch(error){
+        if (error.status === 404) return [];
+        throw error;
+      }
+
+      if (!Array.isArray(entries)) return [];
+
+      return entries
+        .filter(file => file.type === "file" && this.isAllowedName(file.name))
+        .map(file => {
+          const publicUrl = this.publicUrlForPath(file.path);
+          return {
+            name: file.name,
+            path: file.path,
+            sha: file.sha,
+            size: file.size,
+            type: this.mimeFromName(file.name),
+            publicUrl,
+            downloadUrl: file.download_url || "",
+            previewUrl: file.download_url || publicUrl
+          };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    async upload(file, existingFiles = []){
+      if (!file) throw new Error("No file selected.");
+      if (!this.isAllowedName(file.name)){
+        const error = new Error(`Only ${[...this.allowedExtensions].join(", ")} images are allowed for now.`);
+        error.status = 400;
+        throw error;
+      }
+      if (file.size > this.maxBytes){
+        const error = new Error(`Image is too large. Maximum size is ${fmtBytes(this.maxBytes)} for now.`);
+        error.status = 400;
+        throw error;
+      }
+
+      const existingNames = new Set(existingFiles.map(item => item.name.toLowerCase()));
+      const safeName = this.uniqueName(this.sanitizeFileName(file.name), existingNames);
+      const path = `${this.dir}/${safeName}`;
+      const encodedContent = arrayBufferToBase64(await file.arrayBuffer());
+      const response = await this.github.writeEncodedFile(path, {
+        encodedContent,
+        message: `gitcms: upload media ${safeName}`
+      });
+
+      return {
+        name: safeName,
+        path,
+        sha: response.content.sha,
+        size: file.size,
+        type: file.type || this.mimeFromName(safeName),
+        publicUrl: this.publicUrlForPath(path),
+        downloadUrl: response.content.download_url || "",
+        previewUrl: response.content.download_url || this.publicUrlForPath(path)
+      };
+    }
+
+    isAllowedName(name){
+      const extension = String(name || "").split(".").pop().toLowerCase();
+      return this.allowedExtensions.has(extension);
+    }
+
+    sanitizeFileName(name){
+      const raw = String(name || "image").trim();
+      const extension = raw.includes(".") ? raw.split(".").pop().toLowerCase() : "jpg";
+      const base = raw.replace(/\.[^.]+$/, "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "image";
+      return `${base}.${extension}`;
+    }
+
+    uniqueName(name, existingNames){
+      if (!existingNames.has(name.toLowerCase())) return name;
+      const extension = name.split(".").pop();
+      const base = name.replace(/\.[^.]+$/, "");
+      let index = 2;
+      let candidate = `${base}-${index}.${extension}`;
+      while (existingNames.has(candidate.toLowerCase())){
+        index += 1;
+        candidate = `${base}-${index}.${extension}`;
+      }
+      existingNames.add(candidate.toLowerCase());
+      return candidate;
+    }
+
+    publicUrlForPath(path){
+      const relative = String(path || "").startsWith(`${this.dir}/`)
+        ? String(path).slice(this.dir.length + 1)
+        : String(path || "").split("/").pop();
+      return this.publicPath + relative.split("/").map(encodeURIComponent).join("/");
+    }
+
+    mimeFromName(name){
+      const extension = String(name || "").split(".").pop().toLowerCase();
+      return {
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        webp: "image/webp",
+        gif: "image/gif"
+      }[extension] || "image/*";
+    }
+  }
+
+/* ================= state ================= */
+  class AppState {
+    constructor(){
+      this.config = null;
+      this.files = [];
+      this.mediaFiles = [];
+      this.currentFile = null;
+      this.busy = false;
+      this.conflictText = null;
+    }
+
+    setConfig(config){
+      this.config = config;
+    }
+
+    setFiles(files){
+      this.files = files;
+    }
+
+    setMediaFiles(files){
+      this.mediaFiles = files;
+    }
+
+    openFile(fragment){
+      this.currentFile = {
+        name: fragment.name,
+        path: fragment.path,
+        sha: fragment.sha,
+        blobSha: fragment.blobSha || fragment.sha,
+        baseBlobSha: fragment.baseBlobSha || fragment.sha,
+        baseCommitSha: fragment.baseCommitSha || "",
+        baseTreeSha: fragment.baseTreeSha || "",
+        orig: fragment.text
+      };
+      this.conflictText = null;
+    }
+
+    closeFile(){
+      this.currentFile = null;
+      this.conflictText = null;
+    }
+
+    isDirty(currentText){
+      return !!this.currentFile && currentText !== this.currentFile.orig;
+    }
+
+    markSaved(text, contentSha, commitSha = ""){
+      if (!this.currentFile) return;
+      this.currentFile.sha = contentSha;
+      this.currentFile.blobSha = contentSha;
+      this.currentFile.baseBlobSha = contentSha;
+      if (commitSha) this.currentFile.baseCommitSha = commitSha;
+      this.currentFile.orig = text;
+      this.conflictText = null;
+    }
+
+    updateFileIndex(path, patch){
+      const file = this.files.find(item => item.path === path);
+      if (file) Object.assign(file, patch);
+    }
+
+    reset(){
+      this.files = [];
+      this.mediaFiles = [];
+      this.currentFile = null;
+      this.busy = false;
+      this.conflictText = null;
+    }
+  }
+
+  /* ================= views ================= */
+  class StatusView {
+    constructor(root){
+      this.root = root;
+    }
+
+    set(message = "ready", kind = ""){
+      if (!this.root) return;
+      this.root.textContent = message;
+      this.root.className = `status${kind ? ` ${kind}` : ""}`;
+      this.root.title = message;
+    }
+  }
+
+  class PreviewRenderer {
+    constructor(iframe){
+      this.iframe = iframe;
+      this.url = null;
+    }
+
+    clear(){
+      if (this.url){
+        URL.revokeObjectURL(this.url);
+        this.url = null;
+      }
+      this.iframe.removeAttribute("srcdoc");
+      this.iframe.src = "about:blank";
+    }
+
+    render(fragmentHtml){
+      const html = this.wrap(fragmentHtml);
+      this.clear();
+      const blob = new Blob([html], { type: "text/html" });
+      this.url = URL.createObjectURL(blob);
+      this.iframe.src = this.url;
+    }
+
+    renderEmpty(message = "No fragment open."){
+      this.clear();
+      const html = `<!doctype html><html><body style="font-family:system-ui,sans-serif;padding:28px;color:#666">${esc(message)}</body></html>`;
+      const blob = new Blob([html], { type: "text/html" });
+      this.url = URL.createObjectURL(blob);
+      this.iframe.src = this.url;
+    }
+
+    wrap(fragmentHtml){
+      return `<!doctype html><html><head><meta charset="utf-8"><style>
+        body{font-family:system-ui,sans-serif;color:#16181f;background:#fff;padding:28px;line-height:1.6}
+        img{max-width:100%;height:auto}
+      </style></head><body>${fragmentHtml}
+      <hr style="margin-top:40px;border:0;border-top:1px dashed #bbb">
+      <small style="color:#888;font-family:monospace">standalone preview — your site's CSS is not loaded here</small>
+      </body></html>`;
+    }
+  }
+
+  class FragmentValidator {
+    constructor(){
+      this.voidTags = new Set([
+        "area", "base", "br", "col", "embed", "hr", "img", "input",
+        "link", "meta", "param", "source", "track", "wbr"
+      ]);
+    }
+
+    validate(text){
+      const html = String(text || "");
+      const warnings = [];
+
+      if (!html.trim()){
+        warnings.push("The fragment is empty.");
+        return warnings;
+      }
+
+      if (/<script\b/i.test(html)){
+        warnings.push("The fragment contains a <script> tag.");
+      }
+
+      if (/\son[a-z]+\s*=/i.test(html)){
+        warnings.push("The fragment contains inline event attributes like onclick/onload.");
+      }
+
+      if (/(href|src)\s*=\s*(["'])\s*javascript:/i.test(html)){
+        warnings.push("The fragment contains a javascript: URL.");
+      }
+
+      const unbalanced = this.findLikelyUnbalancedTags(html);
+      if (unbalanced.length){
+        warnings.push(`Some tags look unbalanced: ${unbalanced.slice(0, 4).join(", ")}.`);
+      }
+
+      return warnings;
+    }
+
+    findLikelyUnbalancedTags(html){
+      const cleaned = html
+        .replace(/<!--[\s\S]*?-->/g, "")
+        .replace(/<!doctype[\s\S]*?>/gi, "");
+      const stack = [];
+      const mismatches = new Set();
+      const tagPattern = /<\s*(\/?)([a-zA-Z][\w:-]*)([^>]*)>/g;
+      let match;
+
+      while ((match = tagPattern.exec(cleaned))){
+        const closing = !!match[1];
+        const tag = match[2].toLowerCase();
+        const rest = match[3] || "";
+
+        if (this.voidTags.has(tag) || /\/\s*$/.test(rest)) continue;
+
+        if (!closing){
+          stack.push(tag);
+          continue;
+        }
+
+        const last = stack.pop();
+        if (last && last !== tag){
+          mismatches.add(last);
+          mismatches.add(tag);
+        } else if (!last){
+          mismatches.add(tag);
+        }
+      }
+
+      for (const openTag of stack){
+        mismatches.add(openTag);
+      }
+
+      return [...mismatches];
+    }
+  }
+
+  class ToastView {
+    constructor(root){
+      this.root = root;
+    }
+
+    show(message, kind){
+      const toast = document.createElement("div");
+      toast.className = `toast${kind ? ` ${kind}` : ""}`;
+      toast.textContent = message;
+      this.root.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+  }
+
+
+  class ConnectView {
+    constructor(){
+      this.connectSection = $("#connect");
+      this.appSection = $("#app");
+      this.form = $("#connectform");
+      this.errorBox = $("#cerr");
+      this.button = $("#connectbtn");
+      this.owner = $("#f-owner");
+      this.repo = $("#f-repo");
+      this.branch = $("#f-branch");
+      this.configPath = $("#f-config-path");
+      this.token = $("#f-token");
+      this.remember = $("#f-remember");
+      this.remote = $("#remote");
+    }
+
+    onSubmit(callback){
+      this.form.addEventListener("submit", event => {
+        event.preventDefault();
+        callback(this.readConfig());
+      });
+    }
+
+    readConfig(){
+      const normalized = normalizeRepoFields(this.owner.value.trim(), this.repo.value.trim());
+      this.owner.value = normalized.owner;
+      this.repo.value = normalized.repo;
+
+      return {
+        owner: normalized.owner,
+        repo: normalized.repo,
+        branch: this.branch.value.trim() || "main",
+        configPath: this.configPath.value.trim().replace(/^\/+/, "") || "gitcms.config.json",
+        token: this.token.value.trim(),
+        remember: this.remember.checked
+      };
+    }
+
+    restore(config){
+      if (!config) return;
+      this.owner.value = config.owner || "";
+      this.repo.value = config.repo || "";
+      this.branch.value = config.branch || "main";
+      this.configPath.value = config.configPath || "gitcms.config.json";
+      this.token.value = config.token || "";
+      this.remember.checked = !!config.remember;
+    }
+
+    showConnecting(){
+      this.button.disabled = true;
+      this.button.textContent = "Connecting…";
+      this.errorBox.classList.remove("show");
+    }
+
+    showConnectError(message){
+      this.appSection.classList.remove("on");
+      this.connectSection.style.display = "flex";
+      this.errorBox.textContent = message;
+      this.errorBox.classList.add("show");
+    }
+
+    showApp(){
+      this.connectSection.style.display = "none";
+      this.appSection.classList.add("on");
+    }
+
+    updateRemote(connectionConfig, projectConfig, configInfo){
+      const content = projectConfig.content;
+      const media = projectConfig.media;
+      const configState = configInfo && configInfo.exists ? "config" : "defaults";
+      this.remote.innerHTML =
+        `<b>${esc(connectionConfig.owner)}/${esc(connectionConfig.repo)}</b> @ ${esc(connectionConfig.branch)}` +
+        ` · ${esc(configInfo.path || connectionConfig.configPath || "gitcms.config.json")} ${configState}` +
+        ` · partials /${esc(content.partialsDir)}` +
+        ` · media /${esc(media.mediaDir)} → ${esc(media.publicPath)}`;
+    }
+
+    showConnect(config){
+      this.appSection.classList.remove("on");
+      this.connectSection.style.display = "flex";
+      this.token.value = config && config.remember ? config.token : "";
+    }
+
+    resetConnectButton(){
+      this.button.disabled = false;
+      this.button.textContent = "Connect";
+    }
+  }
+
+class FileListView {
+    constructor(){
+      this.list = $("#filelist");
+      this.count = $("#filecount");
+      this.empty = $("#emptystate");
+      this.newName = $("#newname");
+      this.newButton = $("#newbtn");
+    }
+
+    showLoading(){
+      this.list.innerHTML = `<li class="empty">loading…</li>`;
+      this.empty.style.display = "none";
+    }
+
+    render(files, currentFile, isDirty, onOpen){
+      this.list.innerHTML = "";
+      this.count.textContent = files.length || "";
+      this.empty.style.display = "none";
+
+      for (const file of files){
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+        const isActive = currentFile && currentFile.path === file.path;
+        button.type = "button";
+        button.className = `fbtn${isActive ? " active" : ""}${isActive && isDirty ? " dirty" : ""}`;
+        button.innerHTML = `<span class="dot"></span><span class="nm">${esc(file.name)}</span><span class="sz">${fmtBytes(file.size)}</span>`;
+        button.onclick = () => onOpen(file.path);
+        item.appendChild(button);
+        this.list.appendChild(item);
+      }
+
+      if (!files.length){
+        this.empty.style.display = "block";
+        this.empty.textContent = "No .html partials here yet — create one below.";
+      }
+    }
+
+    showMissingFolder(dir, branch, onSeed){
+      this.list.innerHTML = "";
+      this.count.textContent = "";
+      this.empty.style.display = "block";
+      this.empty.innerHTML =
+        `No <span class="m">/${esc(dir)}</span> folder on <span class="m">${esc(branch)}</span> yet.` +
+        `<button class="btn" id="seedbtn">create it with a starter partial</button>`;
+      $("#seedbtn").onclick = onSeed;
+    }
+
+    showError(message){
+      this.list.innerHTML = `<li class="empty">${esc(message)}</li>`;
+      this.count.textContent = "";
+      this.empty.style.display = "none";
+    }
+
+    getNewName(){
+      return this.newName.value;
+    }
+
+    clearNewName(){
+      this.newName.value = "";
+    }
+  }
+
+  class EditorView {
+    constructor(){
+      this.fileName = $("#fname");
+      this.pathLabel = $("#fname .path");
+      this.commitMessage = $("#commitmsg");
+      this.saveButton = $("#savebtn");
+      this.deleteButton = $("#deletebtn");
+      this.editorWrap = $("#editorwrap");
+      this.editor = $("#editor");
+      this.preview = $("#preview");
+      this.previewRenderer = new PreviewRenderer(this.preview);
+      this.idle = $("#idle");
+      this.editTab = $("#tab-edit");
+      this.previewTab = $("#tab-preview");
+      this.trailBlob = $("#t-blob");
+      this.trailSize = $("#t-size");
+      this.trailLast = $("#t-last");
+    }
+
+    getText(){
+      return this.editor.value;
+    }
+
+    getCommitMessage(){
+      return this.commitMessage.value.trim();
+    }
+
+    showLoading(path){
+      this.editor.disabled = true;
+      this.editor.value = "";
+      this.idle.style.display = "flex";
+      this.idle.textContent = `loading ${path} …`;
+    }
+
+    showFile(file){
+      this.editor.value = file.orig;
+      this.editor.disabled = false;
+      this.idle.style.display = "none";
+      this.commitMessage.disabled = false;
+      this.commitMessage.value = "";
+      this.commitMessage.placeholder = `gitcms: update ${file.name}`;
+      this.saveButton.disabled = true;
+      this.deleteButton.disabled = false;
+      this.pathLabel.textContent = file.path;
+      this.clearPreview();
+      this.setTab("edit");
+      this.editor.focus();
+    }
+
+    showIdle(message = "pick a partial on the left, or create one"){
+      this.editor.value = "";
+      this.editor.disabled = true;
+      this.commitMessage.value = "";
+      this.commitMessage.disabled = true;
+      this.saveButton.disabled = true;
+      this.deleteButton.disabled = true;
+      this.pathLabel.textContent = "no file open";
+      this.idle.style.display = "flex";
+      this.idle.textContent = message;
+      this.clearPreview();
+      this.setTab("edit");
+      this.updateDirty(false);
+      this.updateTrail(null, null);
+    }
+
+    showError(message){
+      this.showIdle(message);
+    }
+
+    updateDirty(isDirty, canCommit){
+      this.fileName.classList.toggle("dirty", !!isDirty);
+      document.title = `${isDirty ? "± " : ""}GitCMS — your repo is the database`;
+      this.saveButton.disabled = !canCommit;
+      this.saveButton.title = canCommit ? "Commit this fragment to GitHub" : "No uncommitted changes";
+    }
+
+    insertAtCursor(insertText){
+      if (this.editor.disabled) return false;
+      this.setTab("edit");
+      const start = this.editor.selectionStart;
+      const end = this.editor.selectionEnd;
+      const before = this.editor.value.slice(0, start);
+      const after = this.editor.value.slice(end);
+      const needsLeadingNewline = before && !before.endsWith("\n");
+      const needsTrailingNewline = after && !after.startsWith("\n");
+      const text = `${needsLeadingNewline ? "\n" : ""}${insertText}${needsTrailingNewline ? "\n" : ""}`;
+      this.editor.value = before + text + after;
+      const cursor = before.length + text.length;
+      this.editor.selectionStart = this.editor.selectionEnd = cursor;
+      this.editor.focus();
+      return true;
+    }
+
+    updateTrail(file, text, committedSha){
+      if (!file){
+        this.trailBlob.textContent = "—";
+        this.trailSize.textContent = "—";
+        return;
+      }
+
+      this.trailBlob.textContent = file.sha.slice(0, 7);
+      this.trailSize.textContent = fmtBytes(textSize(text));
+
+      if (committedSha){
+        this.trailLast.innerHTML = `committed → <b class="sha pulse">${esc(committedSha.slice(0, 7))}</b> on ${esc(file.branch || "current branch")}`;
+      }
+    }
+
+    setBusy(isBusy){
+      this.saveButton.disabled = true;
+      this.saveButton.textContent = isBusy ? "Committing…" : "Commit";
+    }
+
+    setTab(which){
+      this.editTab.classList.toggle("on", which === "edit");
+      this.previewTab.classList.toggle("on", which === "preview");
+      this.editorWrap.classList.toggle("previewing", which === "preview");
+
+      if (which === "preview"){
+        this.renderPreview();
+      }
+    }
+
+    clearPreview(){
+      this.previewRenderer.clear();
+    }
+
+    renderPreview(){
+      if (this.editor.disabled){
+        this.previewRenderer.renderEmpty();
+        return;
+      }
+      this.previewRenderer.render(this.editor.value);
+    }
+  }
+
+
+  class MediaView {
+    constructor(){
+      this.root = $("#mediaDrawer");
+      this.toggleButton = $("#mediabtn");
+      this.closeButton = $("#closemediabtn");
+      this.pathLabel = $("#mediapathlabel");
+      this.dropzone = $("#mediadrop");
+      this.fileInput = $("#mediafile");
+      this.list = $("#medialist");
+      this.empty = $("#mediaempty");
+    }
+
+    setEnabled(enabled){
+      this.toggleButton.disabled = !enabled;
+      if (!enabled) this.close();
+    }
+
+    setConfig(mediaDir, publicPath){
+      this.pathLabel.textContent = `repo /${mediaDir || "media"} → public ${publicPath || "/media/"}`;
+    }
+
+    onToggle(callback){
+      this.toggleButton.onclick = callback;
+    }
+
+    onClose(callback){
+      this.closeButton.onclick = callback;
+    }
+
+    onFiles(callback){
+      this.fileInput.addEventListener("change", event => {
+        callback(Array.from(event.target.files || []));
+        event.target.value = "";
+      });
+
+      ["dragenter", "dragover"].forEach(type => {
+        this.dropzone.addEventListener(type, event => {
+          event.preventDefault();
+          this.dropzone.classList.add("drag");
+        });
+      });
+
+      ["dragleave", "drop"].forEach(type => {
+        this.dropzone.addEventListener(type, event => {
+          event.preventDefault();
+          this.dropzone.classList.remove("drag");
+        });
+      });
+
+      this.dropzone.addEventListener("drop", event => {
+        callback(Array.from(event.dataTransfer.files || []));
+      });
+    }
+
+    toggle(){
+      this.root.classList.toggle("on");
+    }
+
+    open(){
+      this.root.classList.add("on");
+    }
+
+    close(){
+      this.root.classList.remove("on");
+    }
+
+    isOpen(){
+      return this.root.classList.contains("on");
+    }
+
+    showLoading(){
+      this.empty.style.display = "block";
+      this.empty.textContent = "loading media…";
+      this.list.innerHTML = "";
+    }
+
+    render(files, { onInsert, onCopy }){
+      this.list.innerHTML = "";
+      this.empty.style.display = files.length ? "none" : "block";
+      this.empty.textContent = files.length ? "" : "No media yet — upload an image above.";
+
+      for (const media of files){
+        const item = document.createElement("div");
+        item.className = "media-item";
+
+        const img = document.createElement("img");
+        img.className = "media-thumb";
+        img.alt = "";
+        img.loading = "lazy";
+        img.onerror = () => {
+          img.onerror = null;
+          img.src = mediaPlaceholderDataUrl(media.name);
+        };
+        img.src = media.previewUrl || media.downloadUrl || media.publicUrl || mediaPlaceholderDataUrl(media.name);
+
+        const info = document.createElement("div");
+        info.className = "media-info";
+        info.innerHTML = `
+          <div class="media-name">${esc(media.name)}</div>
+          <div class="media-url">${esc(media.publicUrl)}</div>
+          <div class="media-actions">
+            <button class="btn" type="button" data-action="insert">insert</button>
+            <button class="btn btn-ghost" type="button" data-action="copy">copy</button>
+          </div>`;
+
+        info.querySelector('[data-action="insert"]').onclick = () => onInsert(media);
+        info.querySelector('[data-action="copy"]').onclick = () => onCopy(media);
+
+        item.appendChild(img);
+        item.appendChild(info);
+        this.list.appendChild(item);
+      }
+    }
+
+    showError(message){
+      this.list.innerHTML = "";
+      this.empty.style.display = "block";
+      this.empty.textContent = message;
+    }
+  }
+
+
+  class SettingsView {
+    constructor(){
+      this.root = $("#settingsDrawer");
+      this.toggleButton = $("#settingsbtn");
+      this.closeButton = $("#closesettingsbtn");
+      this.saveButton = $("#s-savebtn");
+      this.meta = $("#settingsmetalabel");
+      this.partialsDir = $("#s-partials-dir");
+      this.mediaDir = $("#s-media-dir");
+      this.publicMediaPath = $("#s-media-public");
+      this.maxUploadBytes = $("#s-max-upload");
+      this.allowedExtensions = $("#s-allowed-ext");
+      this.sourceDir = $("#s-source-dir");
+      this.outputDir = $("#s-output-dir");
+      this.currentConfig = normalizeProjectConfig({});
+    }
+
+    setEnabled(enabled){
+      this.toggleButton.disabled = !enabled;
+      if (!enabled) this.close();
+    }
+
+    onToggle(callback){
+      this.toggleButton.onclick = callback;
+    }
+
+    onClose(callback){
+      this.closeButton.onclick = callback;
+    }
+
+    onSave(callback){
+      this.saveButton.onclick = () => callback(this.read());
+    }
+
+    toggle(){
+      this.root.classList.toggle("on");
+    }
+
+    open(){
+      this.root.classList.add("on");
+    }
+
+    close(){
+      this.root.classList.remove("on");
+    }
+
+    isOpen(){
+      return this.root.classList.contains("on");
+    }
+
+    render(config, info){
+      const normalized = normalizeProjectConfig(config);
+      this.currentConfig = normalized;
+      this.meta.textContent = `${info.path || "gitcms.config.json"} · ${info.exists ? "loaded from repo" : "using defaults, save to create"}`;
+      this.partialsDir.value = normalized.content.partialsDir;
+      this.mediaDir.value = normalized.media.mediaDir;
+      this.publicMediaPath.value = normalized.media.publicPath;
+      this.maxUploadBytes.value = String(normalized.media.maxUploadBytes);
+      this.allowedExtensions.value = normalized.media.allowedExtensions.join(", ");
+      this.sourceDir.value = normalized.build.sourceDir;
+      this.outputDir.value = normalized.build.outputDir;
+    }
+
+    read(){
+      const existing = this.currentConfig || normalizeProjectConfig({});
+
+      return normalizeProjectConfig({
+        ...existing,
+        content: {
+          ...existing.content,
+          partialsDir: this.partialsDir.value,
+          partialLinkRel: existing.content.partialLinkRel || "partial"
+        },
+        media: {
+          ...existing.media,
+          mediaDir: this.mediaDir.value,
+          publicPath: this.publicMediaPath.value,
+          maxUploadBytes: Number(this.maxUploadBytes.value),
+          allowedExtensions: this.allowedExtensions.value.split(",").map(item => item.trim())
+        },
+        build: {
+          ...existing.build,
+          sourceDir: this.sourceDir.value,
+          outputDir: this.outputDir.value
+        },
+        preview: {
+          ...existing.preview
+        }
+      });
+    }
+
+    setSaving(isSaving){
+      this.saveButton.disabled = isSaving;
+      this.saveButton.textContent = isSaving ? "Saving…" : "Save config";
+    }
+  }
+
+  class ConflictView {
+    constructor(){
+      this.root = $("#conflict");
+      this.text = $("#conflicttext");
+    }
+
+    show(filePath, branch){
+      this.text.textContent =
+`<<<<<<< yours (this editor)
+=======  ${filePath} changed on GitHub since you opened it
+>>>>>>> ${branch} (theirs)`;
+      this.root.classList.add("show");
+    }
+
+    hide(){
+      this.root.classList.remove("show");
+    }
+  }
+
+  /* ================= controller ================= */
+
+  class AppController {
+    constructor(){
+      this.store = new SafeStore(LS_KEY);
+      this.state = new AppState();
+      this.github = null;
+      this.configRepo = null;
+      this.projectConfig = defaultProjectConfig();
+      this.projectConfigSha = null;
+      this.projectConfigExists = false;
+      this.fragments = null;
+      this.media = null;
+      this.status = new StatusView($("#t-status"));
+      this.validator = new FragmentValidator();
+      this.toasts = new ToastView($("#toasts"));
+      this.connectView = new ConnectView();
+      this.fileListView = new FileListView();
+      this.editorView = new EditorView();
+      this.mediaView = new MediaView();
+      this.settingsView = new SettingsView();
+      this.conflictView = new ConflictView();
+    }
+
+    init(){
+      const saved = this.store.get();
+      this.connectView.restore(saved);
+      this.mediaView.setEnabled(false);
+      this.settingsView.setEnabled(false);
+      this.bindEvents();
+
+      if (saved && saved.token && saved.remember){
+        this.connect(saved, { silent: true });
+      }
+    }
+
+    bindEvents(){
+      this.connectView.onSubmit(config => this.connect(config));
+      $("#refreshbtn").onclick = () => this.refreshAll();
+      $("#disconnectbtn").onclick = () => this.disconnect();
+      $("#savebtn").onclick = () => this.saveFile();
+      $("#deletebtn").onclick = () => this.deleteCurrent();
+      $("#newbtn").onclick = () => this.createPartial();
+      this.mediaView.onToggle(() => this.toggleMediaDrawer());
+      this.mediaView.onClose(() => this.mediaView.close());
+      this.mediaView.onFiles(files => this.uploadMediaFiles(files));
+      this.settingsView.onToggle(() => this.toggleSettingsDrawer());
+      this.settingsView.onClose(() => this.settingsView.close());
+      this.settingsView.onSave(config => this.saveProjectConfig(config));
+      $("#keepminebtn").onclick = () => this.keepMine();
+      $("#taketheirsbtn").onclick = () => this.takeTheirs();
+      $("#tab-edit").onclick = () => {
+        this.editorView.setTab("edit");
+        this.status.set("edit mode");
+      };
+      $("#tab-preview").onclick = () => {
+        this.editorView.setTab("preview");
+        this.status.set("preview refreshed", "ok");
+      };
+
+      this.fileListView.newName.addEventListener("keydown", event => {
+        if (event.key === "Enter"){
+          event.preventDefault();
+          this.createPartial();
+        }
+      });
+
+      this.editorView.editor.addEventListener("input", () => this.refreshDirtyUI());
+      this.editorView.editor.addEventListener("keydown", event => this.handleEditorKeydown(event));
+
+      document.addEventListener("keydown", event => {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s"){
+          event.preventDefault();
+          if (this.state.currentFile) this.saveFile();
+        }
+      });
+
+      window.addEventListener("beforeunload", event => {
+        if (this.state.isDirty(this.editorView.getText())){
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      });
+    }
+
+    async connect(config, { silent = false } = {}){
+      this.state.setConfig(config);
+      this.github = new GitHubClient(config);
+      this.configRepo = new ConfigRepository(this.github, config.configPath || "gitcms.config.json");
+      this.connectView.showConnecting();
+      this.status.set("connecting…");
+
+      try {
+        await this.github.assertRepoAccess();
+        await this.loadProjectConfig();
+        this.store.set({ ...config, token: config.remember ? config.token : "" });
+        this.connectView.showApp();
+        this.applyProjectConfig();
+        this.mediaView.setEnabled(true);
+        this.settingsView.setEnabled(true);
+        this.status.set("connected", "ok");
+        await this.loadList();
+      } catch(error){
+        this.connectView.showConnectError(friendly(error));
+        this.status.set("connect failed", "err");
+        if (silent) this.toasts.show("Reconnect failed — sign in again", "err");
+      } finally {
+        this.connectView.resetConnectButton();
+      }
+    }
+
+    async loadProjectConfig(){
+      if (!this.configRepo) return;
+      this.status.set("loading config…");
+      const loaded = await this.configRepo.load();
+      this.projectConfig = loaded.config;
+      this.projectConfigSha = loaded.sha;
+      this.projectConfigExists = loaded.exists;
+      if (!loaded.exists){
+        this.toasts.show(`${loaded.path} not found — using default config`, "warn");
+      }
+    }
+
+    applyProjectConfig(){
+      const info = this.configInfo();
+      this.projectConfig = normalizeProjectConfig(this.projectConfig);
+      this.fragments = new FragmentRepository(this.github, this.projectConfig.content.partialsDir);
+      this.media = new MediaRepository(this.github, this.projectConfig.media);
+      this.mediaView.setConfig(this.projectConfig.media.mediaDir, this.media.publicPath);
+      this.settingsView.render(this.projectConfig, info);
+      this.connectView.updateRemote(this.state.config, this.projectConfig, info);
+    }
+
+    configInfo(){
+      return {
+        path: this.configRepo ? this.configRepo.path : "gitcms.config.json",
+        sha: this.projectConfigSha,
+        exists: this.projectConfigExists
+      };
+    }
+
+    async saveProjectConfig(config){
+      if (!this.configRepo) return;
+      try {
+        config = validateProjectConfig(config);
+      } catch(error){
+        this.toasts.show(error.message, "err");
+        this.status.set("config invalid", "err");
+        return;
+      }
+
+      if (this.state.isDirty(this.editorView.getText())){
+        if (!confirm("You have uncommitted fragment edits. Save config anyway?")) return;
+      }
+
+      this.settingsView.setSaving(true);
+      this.status.set("saving config…");
+
+      try {
+        const saved = await this.configRepo.save(config, this.projectConfigSha);
+        this.projectConfig = saved.config;
+        this.projectConfigSha = saved.sha;
+        this.projectConfigExists = true;
+        this.applyProjectConfig();
+        this.state.setFiles([]);
+        this.state.setMediaFiles([]);
+        this.closeEditor();
+        await this.loadList();
+        if (this.mediaView.isOpen()) await this.loadMediaList();
+        this.status.set(`config saved ${saved.commitSha.slice(0, 7)}`, "ok");
+        this.toasts.show("Config saved", "ok");
+      } catch(error){
+        this.status.set("config save failed", "err");
+        this.toasts.show(friendly(error), "err");
+      } finally {
+        this.settingsView.setSaving(false);
+      }
+    }
+
+    async refreshAll(){
+      if (!this.github) return;
+      try {
+        await this.loadProjectConfig();
+        this.applyProjectConfig();
+      } catch(error){
+        this.toasts.show(friendly(error), "err");
+      }
+      await this.loadList();
+      if (this.mediaView.isOpen()) await this.loadMediaList();
+    }
+
+    async loadList(){
+      if (!this.fragments || !this.state.config) return;
+      this.fileListView.showLoading();
+      this.status.set("loading partials…");
+
+      try {
+        const files = await this.fragments.list();
+        this.state.setFiles(files);
+        this.renderFileList();
+        this.status.set(`loaded ${files.length} partial${files.length === 1 ? "" : "s"}`, "ok");
+      } catch(error){
+        if (error.status === 404){
+          this.state.setFiles([]);
+          this.fileListView.showMissingFolder(
+            this.projectConfig.content.partialsDir,
+            this.state.config.branch,
+            () => this.createPartial("starter.html")
+          );
+          this.status.set("partials folder missing", "warn");
+        } else {
+          this.fileListView.showError(friendly(error));
+          this.status.set("file list failed", "err");
+        }
+      }
+    }
+
+    renderFileList(){
+      this.fileListView.render(
+        this.state.files,
+        this.state.currentFile,
+        this.state.isDirty(this.editorView.getText()),
+        path => this.openFile(path)
+      );
+    }
+
+    async openFile(path, { skipDirtyGuard = false } = {}){
+      if (this.state.busy) return;
+      if (!skipDirtyGuard && this.state.isDirty(this.editorView.getText())){
+        const name = this.state.currentFile ? this.state.currentFile.name : "this file";
+        if (!confirm(`Discard uncommitted edits in ${name}?`)) return;
+      }
+
+      this.hideConflict();
+      this.editorView.showLoading(path);
+      this.status.set(`loading ${path}…`);
+
+      try {
+        const fragment = await this.fragments.read(path);
+        this.state.openFile(fragment);
+        this.editorView.showFile(this.state.currentFile);
+        this.refreshDirtyUI();
+        this.status.set(`opened ${fragment.name}`, "ok");
+      } catch(error){
+        this.state.closeFile();
+        this.editorView.showError(friendly(error));
+        this.refreshDirtyUI();
+        this.status.set("open failed", "err");
+      }
+    }
+
+    closeEditor(){
+      this.state.closeFile();
+      this.editorView.showIdle();
+      this.renderFileList();
+    }
+
+    refreshDirtyUI(){
+      const isDirty = this.state.isDirty(this.editorView.getText());
+      const canCommit = !!this.state.currentFile && !this.state.busy && isDirty;
+      this.editorView.updateDirty(isDirty, canCommit);
+      this.editorView.updateTrail(this.currentFileForTrail(), this.editorView.getText());
+      this.renderFileList();
+    }
+
+    currentFileForTrail(){
+      if (!this.state.currentFile) return null;
+      return {
+        ...this.state.currentFile,
+        branch: this.state.config ? this.state.config.branch : ""
+      };
+    }
+
+    validateBeforeCommit(text){
+      const warnings = this.validator.validate(text);
+      if (!warnings.length) return true;
+
+      this.status.set(`${warnings.length} validation warning${warnings.length === 1 ? "" : "s"}`, "warn");
+      const message = [
+        "Validation warnings before commit:",
+        "",
+        ...warnings.map(item => `- ${item}`),
+        "",
+        "Commit anyway?"
+      ].join("\n");
+
+      return confirm(message);
+    }
+
+    completeCommit(response, text, toastSuffix = ""){
+      this.state.markSaved(text, response.content.sha, response.commit.sha);
+      this.hideConflict();
+      this.state.updateFileIndex(this.state.currentFile.path, {
+        sha: response.content.sha,
+        size: textSize(text)
+      });
+      this.editorView.updateTrail(this.currentFileForTrail(), text, response.commit.sha);
+      this.status.set(`committed ${response.commit.sha.slice(0, 7)}`, "ok");
+      this.toasts.show(`Committed ${response.commit.sha.slice(0, 7)}${toastSuffix}`, "ok");
+    }
+
+    async tryRecoverStaleShaCommit(text){
+      if (!this.state.currentFile || !this.fragments) return false;
+
+      const openedOriginal = this.state.currentFile.orig;
+      const currentPath = this.state.currentFile.path;
+      const latest = await this.fragments.read(currentPath);
+
+      // The GitHub contents API can briefly reject a commit when our stored blob SHA is stale,
+      // even if the file's actual content has not changed. In that case, refresh the SHA and retry once.
+      if (latest.text === openedOriginal){
+        this.state.currentFile.sha = latest.sha;
+        const response = await this.fragments.save(
+          this.state.currentFile,
+          text,
+          this.editorView.getCommitMessage(),
+          latest.sha
+        );
+        this.completeCommit(response, text, " after refreshing file state");
+        return true;
+      }
+
+      // If the remote already has exactly what is in the editor, treat it as saved.
+      if (latest.text === text){
+        this.state.markSaved(text, latest.sha);
+        this.state.updateFileIndex(currentPath, {
+          sha: latest.sha,
+          size: textSize(text)
+        });
+        this.hideConflict();
+        this.editorView.updateTrail(this.currentFileForTrail(), text);
+        this.status.set("remote already has this content", "ok");
+        this.toasts.show("GitHub already has this version", "ok");
+        return true;
+      }
+
+      return false;
+    }
+
+    async saveFile(forceSha){
+      if (!this.state.currentFile || this.state.busy) return;
+      const text = this.editorView.getText();
+      const isForcedCommit = !!forceSha;
+
+      if (!isForcedCommit && !this.state.isDirty(text)){
+        this.toasts.show("Nothing changed — nothing to commit");
+        this.status.set("nothing to commit");
+        return;
+      }
+
+      if (!this.validateBeforeCommit(text)){
+        this.status.set("commit canceled", "warn");
+        return;
+      }
+
+      this.state.busy = true;
+      this.editorView.setBusy(true);
+      this.status.set("committing…");
+
+      try {
+        const response = await this.fragments.save(
+          this.state.currentFile,
+          text,
+          this.editorView.getCommitMessage(),
+          forceSha
+        );
+
+        this.completeCommit(response, text);
+      } catch(error){
+        if (error.status === 409 || error.status === 422){
+          try {
+            const recovered = !isForcedCommit && await this.tryRecoverStaleShaCommit(text);
+            if (!recovered){
+              this.showConflict(text);
+              this.status.set("conflict detected", "warn");
+            }
+          } catch(recoveryError){
+            this.status.set("commit failed", "err");
+            this.toasts.show(friendly(recoveryError), "err");
+          }
+        } else {
+          this.status.set("commit failed", "err");
+          this.toasts.show(friendly(error), "err");
+        }
+      } finally {
+        this.state.busy = false;
+        this.editorView.setBusy(false);
+        this.refreshDirtyUI();
+      }
+    }
+
+    showConflict(myText){
+      if (!this.state.currentFile || !this.state.config) return;
+      this.state.conflictText = myText;
+      this.conflictView.show(this.state.currentFile.path, this.state.config.branch);
+    }
+
+    hideConflict(){
+      this.state.conflictText = null;
+      this.conflictView.hide();
+    }
+
+    async keepMine(){
+      if (!this.state.currentFile || this.state.conflictText == null) return;
+
+      try {
+        const fresh = await this.fragments.read(this.state.currentFile.path);
+        await this.saveFile(fresh.sha);
+      } catch(error){
+        this.toasts.show(friendly(error), "err");
+      }
+    }
+
+    async takeTheirs(){
+      if (!this.state.currentFile) return;
+      const path = this.state.currentFile.path;
+      this.hideConflict();
+      await this.openFile(path, { skipDirtyGuard: true });
+      this.status.set("loaded GitHub version", "ok");
+      this.toasts.show("Loaded GitHub's version — your edit was discarded");
+    }
+
+    async createPartial(rawName){
+      if (!this.fragments) return;
+      const name = rawName || this.fileListView.getNewName();
+
+      try {
+        this.status.set("creating partial…");
+        const normalized = this.fragments.normalizeName(name);
+        if (this.state.files.some(file => file.name === normalized)){
+          this.toasts.show(`${normalized} already exists`, "err");
+          return;
+        }
+
+        const created = await this.fragments.create(normalized);
+        this.fileListView.clearNewName();
+        this.status.set(`created ${created.name}`, "ok");
+        this.toasts.show(`Created ${created.name}`, "ok");
+        await this.loadList();
+        await this.openFile(created.path, { skipDirtyGuard: true });
+      } catch(error){
+        this.status.set("create failed", "err");
+        this.toasts.show(friendly(error), "err");
+      }
+    }
+
+    async deleteCurrent(){
+      if (!this.state.currentFile || !this.state.config) return;
+      const file = this.state.currentFile;
+      if (!confirm(`Delete ${file.path} from ${this.state.config.branch}? The commit history keeps it recoverable.`)) return;
+
+      try {
+        this.status.set("deleting partial…");
+        await this.fragments.delete(file);
+        this.status.set(`deleted ${file.name}`, "ok");
+        this.toasts.show(`Deleted ${file.name}`, "ok");
+        this.closeEditor();
+        await this.loadList();
+      } catch(error){
+        if (error.status === 409 || error.status === 422){
+          this.status.set("delete conflict", "warn");
+          this.toasts.show("It changed on GitHub first — refresh, reopen, then delete.", "err");
+        } else {
+          this.status.set("delete failed", "err");
+          this.toasts.show(friendly(error), "err");
+        }
+      }
+    }
+
+    async toggleMediaDrawer(){
+      if (!this.media) return;
+      this.settingsView.close();
+      this.mediaView.toggle();
+      if (this.mediaView.isOpen()){
+        await this.loadMediaList();
+      }
+    }
+
+    toggleSettingsDrawer(){
+      if (!this.settingsView) return;
+      this.mediaView.close();
+      this.settingsView.render(this.projectConfig, this.configInfo());
+      this.settingsView.toggle();
+    }
+
+    async loadMediaList(){
+      if (!this.media) return;
+      this.mediaView.showLoading();
+      this.status.set("loading media…");
+
+      try {
+        const localPreviews = new Map(
+          this.state.mediaFiles
+            .filter(file => file.previewUrl && String(file.previewUrl).startsWith("blob:"))
+            .map(file => [file.path, file.previewUrl])
+        );
+        const files = await this.media.list();
+        for (const file of files){
+          if (localPreviews.has(file.path)) file.previewUrl = localPreviews.get(file.path);
+        }
+        this.state.setMediaFiles(files);
+        this.renderMediaListFromState();
+        this.status.set(`loaded ${files.length} media file${files.length === 1 ? "" : "s"}`, "ok");
+      } catch(error){
+        this.mediaView.showError(friendly(error));
+        this.status.set("media list failed", "err");
+      }
+    }
+
+    renderMediaListFromState(){
+      this.mediaView.render(this.state.mediaFiles, {
+        onInsert: media => this.insertMedia(media),
+        onCopy: media => this.copyMediaPath(media)
+      });
+    }
+
+    async uploadMediaFiles(files){
+      if (!this.media) return;
+      const selectedFiles = Array.from(files || []);
+      if (!selectedFiles.length) return;
+
+      for (const file of selectedFiles){
+        try {
+          this.status.set(`uploading ${file.name}…`);
+          const uploaded = await this.media.upload(file, this.state.mediaFiles);
+          uploaded.previewUrl = URL.createObjectURL(file);
+          this.state.mediaFiles.push(uploaded);
+          this.renderMediaListFromState();
+          this.toasts.show(`Uploaded ${uploaded.name}`, "ok");
+        } catch(error){
+          this.toasts.show(`${file.name}: ${friendly(error)}`, "err");
+        }
+      }
+
+      await this.loadMediaList();
+      window.setTimeout(() => {
+        if (this.mediaView.isOpen()) this.loadMediaList();
+      }, 1200);
+    }
+
+    insertMedia(media){
+      if (!this.state.currentFile){
+        this.toasts.show("Open a partial before inserting media.", "err");
+        this.status.set("no partial open", "warn");
+        return;
+      }
+
+      const tag = `<img src="${attrEsc(media.publicUrl)}" alt="">`;
+      if (!this.editorView.insertAtCursor(tag)) return;
+      this.refreshDirtyUI();
+      this.status.set(`inserted ${media.name}`, "ok");
+    }
+
+    async copyMediaPath(media){
+      try {
+        await navigator.clipboard.writeText(media.publicUrl);
+        this.toasts.show(`Copied ${media.publicUrl}`, "ok");
+        this.status.set("media path copied", "ok");
+      } catch(_error){
+        prompt("Copy media path:", media.publicUrl);
+        this.status.set("copy fallback opened", "warn");
+      }
+    }
+
+    disconnect(){
+      if (this.state.isDirty(this.editorView.getText()) && !confirm("You have uncommitted edits. Disconnect anyway?")) return;
+
+      const config = this.state.config;
+      if (config){
+        this.store.set(config.remember ? { ...config } : { ...config, token: "" });
+      } else {
+        this.store.clear();
+      }
+
+      this.github = null;
+      this.configRepo = null;
+      this.projectConfig = defaultProjectConfig();
+      this.projectConfigSha = null;
+      this.projectConfigExists = false;
+      this.fragments = null;
+      this.media = null;
+      this.mediaView.setEnabled(false);
+      this.settingsView.setEnabled(false);
+      this.mediaView.render([], { onInsert: () => {}, onCopy: () => {} });
+      this.state.reset();
+      this.closeEditor();
+      this.fileListView.list.innerHTML = "";
+      this.connectView.showConnect(config);
+      this.status.set("disconnected");
+    }
+
+    handleEditorKeydown(event){
+      if (event.key !== "Tab") return;
+      event.preventDefault();
+      const editor = this.editorView.editor;
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      editor.value = `${editor.value.slice(0, start)}  ${editor.value.slice(end)}`;
+      editor.selectionStart = editor.selectionEnd = start + 2;
+      this.refreshDirtyUI();
+    }
+  }
+
+document.addEventListener("DOMContentLoaded", () => {
+    new AppController().init();
+  });
+})();
+</script>
+</body>
+</html>
