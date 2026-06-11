@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
@@ -25,14 +25,25 @@ const DEFAULT_CONFIG = {
 
 async function loadConfig() {
   if (!existsSync(CONFIG_PATH)) return DEFAULT_CONFIG;
+
   const raw = await readFile(CONFIG_PATH, "utf8");
   const user = JSON.parse(raw);
+
   return {
     ...DEFAULT_CONFIG,
     ...user,
-    content: { ...DEFAULT_CONFIG.content, ...(user.content || {}) },
-    media: { ...DEFAULT_CONFIG.media, ...(user.media || {}) },
-    build: { ...DEFAULT_CONFIG.build, ...(user.build || {}) }
+    content: {
+      ...DEFAULT_CONFIG.content,
+      ...(user.content || {})
+    },
+    media: {
+      ...DEFAULT_CONFIG.media,
+      ...(user.media || {})
+    },
+    build: {
+      ...DEFAULT_CONFIG.build,
+      ...(user.build || {})
+    }
   };
 }
 
@@ -46,11 +57,12 @@ function isInside(child, parent) {
 }
 
 async function walk(dir) {
-  const entries = await import("node:fs/promises").then(fs => fs.readdir(dir, { withFileTypes: true }));
+  const entries = await readdir(dir, { withFileTypes: true });
   const files = [];
 
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
+
     if (entry.isDirectory()) {
       files.push(...await walk(full));
     } else if (entry.isFile()) {
@@ -67,25 +79,31 @@ async function replaceAsync(str, regex, replacer) {
 
   for (const match of matches.reverse()) {
     const replacement = await replacer(match);
-    out = out.slice(0, match.index) + replacement + out.slice(match.index + match[0].length);
+    out =
+      out.slice(0, match.index) +
+      replacement +
+      out.slice(match.index + match[0].length);
   }
 
   return out;
 }
 
-async function inlinePartials(htmlFile, relName) {
+async function inlinePartials(htmlFile) {
   let html = await readFile(htmlFile, "utf8");
 
-  // Supports: <link rel="partial" href="./partials/aha.html" />
-  // Attribute order can be rel then href or href then rel.
-  const linkRegex = /<link\b(?=[^>]*\brel=["']partial["'])(?=[^>]*\bhref=["']([^"']+)["'])[^>]*>/gi;
+  const linkRegex =
+    /<link\b(?=[^>]*\brel=["']partial["'])(?=[^>]*\bhref=["']([^"']+)["'])[^>]*\/?>/gi;
 
   html = await replaceAsync(html, linkRegex, async (match) => {
     const href = match[1];
     const partialPath = path.resolve(path.dirname(htmlFile), href);
 
     if (!existsSync(partialPath)) {
-      throw new Error(`Partial not found: ${href} referenced by ${toPosix(path.relative(ROOT, htmlFile))}`);
+      throw new Error(
+        `Partial not found: ${href} referenced by ${toPosix(
+          path.relative(ROOT, htmlFile)
+        )}`
+      );
     }
 
     return await readFile(partialPath, "utf8");
@@ -95,6 +113,7 @@ async function inlinePartials(htmlFile, relName) {
 }
 
 const config = await loadConfig();
+
 const sourceDir = path.resolve(ROOT, config.build.sourceDir);
 const outputDir = path.resolve(ROOT, config.build.outputDir);
 const partialsDir = path.resolve(ROOT, config.content.partialsDir);
