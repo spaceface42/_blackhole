@@ -1,17 +1,26 @@
 {
   "version": 1,
   "content": {
-    "partialsDir": "src/partials",
+    "partialsDir": "partials",
     "partialLinkRel": "partial"
   },
   "media": {
-    "mediaDir": "src/media",
+    "mediaDir": "media",
     "publicPath": "./media/",
     "maxUploadBytes": 5242880,
-    "allowedExtensions": ["jpg", "jpeg", "png", "webp", "gif"]
+    "allowedExtensions": [
+      "jpg",
+      "jpeg",
+      "png",
+      "webp",
+      "gif"
+    ]
+  },
+  "preview": {
+    "css": []
   },
   "build": {
-    "sourceDir": "src",
+    "sourceDir": ".",
     "outputDir": "dist"
   }
 }
