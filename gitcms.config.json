@@ -5,7 +5,7 @@
     "partialLinkRel": "partial"
   },
   "media": {
-    "mediaDir": "media",
+    "mediaDir": "src/media",
     "publicPath": "./media/",
     "maxUploadBytes": 5242880,
     "allowedExtensions": [
@@ -20,7 +20,7 @@
     "css": []
   },
   "build": {
-    "sourceDir": "src",
+    "sourceDir": ".",
     "outputDir": "dist"
   }
 }
