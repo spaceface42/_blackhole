@@ -653,9 +653,15 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
 
     async request(path, { method = "GET", body } = {}){
       let response;
+      const isGet = method.toUpperCase() === "GET";
+      const cacheBustedPath = isGet
+        ? path + (path.includes("?") ? "&" : "?") + `gitcms_cache=${Date.now()}-${Math.random().toString(36).slice(2)}`
+        : path;
+
       try {
-        response = await fetch(API + path, {
+        response = await fetch(API + cacheBustedPath, {
           method,
+          cache: isGet ? "no-store" : "default",
           headers: {
             "Authorization": `Bearer ${this.config.token}`,
             "Accept": "application/vnd.github+json",
@@ -688,10 +694,15 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
       return `/repos/${owner}/${repo}${path}`;
     }
 
+    branchRefPath(){
+      return `/git/refs/heads/${segEncode(this.config.branch)}`;
+    }
+
     assertRepoAccess(){
       return this.request(this.repoPath());
     }
 
+    /* Contents API remains useful for config and binary media uploads. */
     listDirectory(dir){
       const branch = encodeURIComponent(this.config.branch);
       return this.request(this.repoPath(`/contents/${segEncode(dir)}?ref=${branch}`));
@@ -740,8 +751,67 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
         }
       });
     }
-  }
 
+    /* Git Data API: immutable commit/tree/blob model for CMS-critical fragment edits. */
+    async getBranchHead(){
+      const ref = await this.request(this.repoPath(this.branchRefPath()));
+      return ref.object.sha;
+    }
+
+    getCommit(commitSha){
+      return this.request(this.repoPath(`/git/commits/${encodeURIComponent(commitSha)}`));
+    }
+
+    getTree(treeSha, { recursive = true } = {}){
+      const suffix = recursive ? "?recursive=1" : "";
+      return this.request(this.repoPath(`/git/trees/${encodeURIComponent(treeSha)}${suffix}`));
+    }
+
+    getBlob(blobSha){
+      return this.request(this.repoPath(`/git/blobs/${encodeURIComponent(blobSha)}`));
+    }
+
+    createBlob(text){
+      return this.request(this.repoPath("/git/blobs"), {
+        method: "POST",
+        body: {
+          content: text,
+          encoding: "utf-8"
+        }
+      });
+    }
+
+    createTree(baseTreeSha, treeChanges){
+      return this.request(this.repoPath("/git/trees"), {
+        method: "POST",
+        body: {
+          base_tree: baseTreeSha,
+          tree: treeChanges
+        }
+      });
+    }
+
+    createCommit({ message, treeSha, parentSha }){
+      return this.request(this.repoPath("/git/commits"), {
+        method: "POST",
+        body: {
+          message,
+          tree: treeSha,
+          parents: [parentSha]
+        }
+      });
+    }
+
+    updateBranchHead(commitSha){
+      return this.request(this.repoPath(this.branchRefPath()), {
+        method: "PATCH",
+        body: {
+          sha: commitSha,
+          force: false
+        }
+      });
+    }
+  }
 
   class ConfigRepository {
     constructor(githubClient, path = "gitcms.config.json"){
@@ -802,49 +872,145 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
       this.dir = dir.replace(/^\/+|\/+$/g, "") || "partials";
     }
 
-    async list(){
-      const entries = await this.github.listDirectory(this.dir);
-      if (!Array.isArray(entries)){
-        const error = new Error(`"/${this.dir}" is a file, not a folder.`);
-        error.status = 400;
-        throw error;
-      }
+    async snapshot(){
+      const headSha = await this.github.getBranchHead();
+      const commit = await this.github.getCommit(headSha);
+      const treeSha = commit.tree.sha;
+      const tree = await this.github.getTree(treeSha, { recursive: true });
 
-      return entries
-        .filter(file => file.type === "file" && /\.html?$/i.test(file.name))
-        .map(file => ({
-          name: file.name,
-          path: file.path,
-          sha: file.sha,
-          size: file.size
+      return {
+        headSha,
+        treeSha,
+        entries: Array.isArray(tree.tree) ? tree.tree : []
+      };
+    }
+
+    entryFor(snapshot, path){
+      return snapshot.entries.find(entry => entry.path === path && entry.type === "blob") || null;
+    }
+
+    fileName(path){
+      return String(path || "").split("/").pop();
+    }
+
+    conflict(message, extra = {}){
+      const error = new Error(message);
+      error.status = 409;
+      Object.assign(error, extra);
+      return error;
+    }
+
+    async list(){
+      const snapshot = await this.snapshot();
+      const prefix = `${this.dir}/`;
+
+      return snapshot.entries
+        .filter(entry => entry.type === "blob")
+        .filter(entry => entry.path.startsWith(prefix))
+        .filter(entry => !entry.path.slice(prefix.length).includes("/"))
+        .filter(entry => /\.html?$/i.test(this.fileName(entry.path)))
+        .map(entry => ({
+          name: this.fileName(entry.path),
+          path: entry.path,
+          sha: entry.sha,
+          blobSha: entry.sha,
+          baseCommitSha: snapshot.headSha,
+          size: entry.size || 0
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
     }
 
     async read(path){
-      const file = await this.github.readFile(path);
-      if (!file.content && file.size > 1000000){
-        const error = new Error("File is over 1 MB — the contents API won't inline it. Partials should be small.");
+      const snapshot = await this.snapshot();
+      const entry = this.entryFor(snapshot, path);
+
+      if (!entry){
+        const error = new Error(`${path} was not found on ${this.github.config.branch}.`);
+        error.status = 404;
+        throw error;
+      }
+
+      if ((entry.size || 0) > 1000000){
+        const error = new Error("File is over 1 MB. Partials should be small.");
         error.status = 400;
         throw error;
       }
 
+      const blob = await this.github.getBlob(entry.sha);
+      const text = blob.encoding === "base64" ? dec64(blob.content) : String(blob.content || "");
+
       return {
-        name: file.name,
-        path: file.path,
-        sha: file.sha,
-        size: file.size,
-        text: dec64(file.content)
+        name: this.fileName(entry.path),
+        path: entry.path,
+        sha: entry.sha,
+        blobSha: entry.sha,
+        baseBlobSha: entry.sha,
+        baseCommitSha: snapshot.headSha,
+        baseTreeSha: snapshot.treeSha,
+        size: entry.size || textSize(text),
+        text
       };
     }
 
     async save(fragment, text, message, overrideSha){
-      const sha = overrideSha || fragment.sha;
-      return this.github.writeFile(fragment.path, {
-        content: text,
-        sha,
-        message: message || `gitcms: update ${fragment.name}`
-      });
+      const force = !!overrideSha;
+      let lastUpdateError = null;
+
+      for (let attempt = 0; attempt < 2; attempt += 1){
+        const snapshot = await this.snapshot();
+        const latestEntry = this.entryFor(snapshot, fragment.path);
+
+        if (!latestEntry){
+          throw this.conflict(`${fragment.path} was deleted on GitHub before this save.`);
+        }
+
+        const expectedSha = overrideSha || fragment.sha;
+        if (!force && latestEntry.sha !== expectedSha){
+          throw this.conflict(`${fragment.path} changed on GitHub since you opened it.`, {
+            remoteBlobSha: latestEntry.sha,
+            localBlobSha: expectedSha
+          });
+        }
+
+        const newBlob = await this.github.createBlob(text);
+        const newTree = await this.github.createTree(snapshot.treeSha, [{
+          path: fragment.path,
+          mode: "100644",
+          type: "blob",
+          sha: newBlob.sha
+        }]);
+        const newCommit = await this.github.createCommit({
+          message: message || `gitcms: update ${fragment.name}`,
+          treeSha: newTree.sha,
+          parentSha: snapshot.headSha
+        });
+
+        try {
+          await this.github.updateBranchHead(newCommit.sha);
+          return {
+            content: {
+              path: fragment.path,
+              sha: newBlob.sha,
+              size: textSize(text)
+            },
+            commit: {
+              sha: newCommit.sha
+            },
+            repository: {
+              parentCommitSha: snapshot.headSha,
+              treeSha: newTree.sha
+            }
+          };
+        } catch(error){
+          if (error.status === 409 || error.status === 422){
+            lastUpdateError = error;
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      throw lastUpdateError || this.conflict("The branch moved during save. Try again.");
     }
 
     async create(name){
@@ -852,20 +1018,100 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
       const path = `${this.dir}/${normalizedName}`;
       const sectionClass = normalizedName.replace(/\.html$/, "");
       const seed = `<!-- ${path} -->\n<section class="${sectionClass}">\n  <h2>New section</h2>\n  <p>Edit me, then commit.</p>\n</section>\n`;
+      let lastUpdateError = null;
 
-      await this.github.writeFile(path, {
-        content: seed,
-        message: `gitcms: create ${normalizedName}`
-      });
+      for (let attempt = 0; attempt < 2; attempt += 1){
+        const snapshot = await this.snapshot();
+        if (this.entryFor(snapshot, path)){
+          const error = new Error(`${normalizedName} already exists`);
+          error.status = 422;
+          throw error;
+        }
 
-      return { name: normalizedName, path };
+        const newBlob = await this.github.createBlob(seed);
+        const newTree = await this.github.createTree(snapshot.treeSha, [{
+          path,
+          mode: "100644",
+          type: "blob",
+          sha: newBlob.sha
+        }]);
+        const newCommit = await this.github.createCommit({
+          message: `gitcms: create ${normalizedName}`,
+          treeSha: newTree.sha,
+          parentSha: snapshot.headSha
+        });
+
+        try {
+          await this.github.updateBranchHead(newCommit.sha);
+          return {
+            name: normalizedName,
+            path,
+            sha: newBlob.sha,
+            blobSha: newBlob.sha,
+            baseBlobSha: newBlob.sha,
+            baseCommitSha: newCommit.sha,
+            text: seed,
+            commitSha: newCommit.sha
+          };
+        } catch(error){
+          if (error.status === 409 || error.status === 422){
+            lastUpdateError = error;
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      throw lastUpdateError || this.conflict("The branch moved during create. Try again.");
     }
 
     async delete(fragment){
-      return this.github.deleteFile(fragment.path, {
-        sha: fragment.sha,
-        message: `gitcms: delete ${fragment.name}`
-      });
+      let lastUpdateError = null;
+
+      for (let attempt = 0; attempt < 2; attempt += 1){
+        const snapshot = await this.snapshot();
+        const latestEntry = this.entryFor(snapshot, fragment.path);
+
+        if (!latestEntry){
+          return {
+            content: { path: fragment.path, sha: null },
+            commit: { sha: snapshot.headSha },
+            alreadyDeleted: true
+          };
+        }
+
+        if (latestEntry.sha !== fragment.sha){
+          throw this.conflict(`${fragment.path} changed on GitHub before delete.`);
+        }
+
+        const newTree = await this.github.createTree(snapshot.treeSha, [{
+          path: fragment.path,
+          mode: "100644",
+          type: "blob",
+          sha: null
+        }]);
+        const newCommit = await this.github.createCommit({
+          message: `gitcms: delete ${fragment.name}`,
+          treeSha: newTree.sha,
+          parentSha: snapshot.headSha
+        });
+
+        try {
+          await this.github.updateBranchHead(newCommit.sha);
+          return {
+            content: { path: fragment.path, sha: null },
+            commit: { sha: newCommit.sha }
+          };
+        } catch(error){
+          if (error.status === 409 || error.status === 422){
+            lastUpdateError = error;
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      throw lastUpdateError || this.conflict("The branch moved during delete. Try again.");
     }
 
     normalizeName(rawName){
@@ -1034,6 +1280,10 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
         name: fragment.name,
         path: fragment.path,
         sha: fragment.sha,
+        blobSha: fragment.blobSha || fragment.sha,
+        baseBlobSha: fragment.baseBlobSha || fragment.sha,
+        baseCommitSha: fragment.baseCommitSha || "",
+        baseTreeSha: fragment.baseTreeSha || "",
         orig: fragment.text
       };
       this.conflictText = null;
@@ -1048,9 +1298,12 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
       return !!this.currentFile && currentText !== this.currentFile.orig;
     }
 
-    markSaved(text, contentSha){
+    markSaved(text, contentSha, commitSha = ""){
       if (!this.currentFile) return;
       this.currentFile.sha = contentSha;
+      this.currentFile.blobSha = contentSha;
+      this.currentFile.baseBlobSha = contentSha;
+      if (commitSha) this.currentFile.baseCommitSha = commitSha;
       this.currentFile.orig = text;
       this.conflictText = null;
     }
@@ -2004,7 +2257,7 @@ class FileListView {
     }
 
     completeCommit(response, text, toastSuffix = ""){
-      this.state.markSaved(text, response.content.sha);
+      this.state.markSaved(text, response.content.sha, response.commit.sha);
       this.hideConflict();
       this.state.updateFileIndex(this.state.currentFile.path, {
         sha: response.content.sha,
