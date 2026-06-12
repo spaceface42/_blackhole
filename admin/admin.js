@@ -1,484 +1,3 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex">
-<title>GitCMS — your repo is the database</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-/* ---------- tokens ---------- */
-:root{
-  --ink:#0e1016;        /* page */
-  --panel:#151823;      /* raised surface */
-  --panel-2:#1b1f2e;    /* hover / inset */
-  --line:#272d40;       /* borders */
-  --text:#e7e9f2;
-  --muted:#8d93a9;
-  --accent:#8b7cf6;     /* violet */
-  --accent-soft:rgba(139,124,246,.16);
-  --on-accent:#12102a;
-  --ok:#5fd9a4;
-  --warn:#f2b150;
-  --danger:#f0716e;
-  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-  --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --r:10px;
-}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;background:var(--ink);color:var(--text);
-  font-family:var(--sans);font-size:15px;line-height:1.5;
-  -webkit-font-smoothing:antialiased;
-}
-::selection{background:var(--accent-soft)}
-a{color:var(--accent)}
-button{font:inherit;cursor:pointer}
-input,textarea,select{font:inherit;color:inherit}
-:focus{outline:none}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
-
-/* mono is the chrome voice: labels, paths, shas, buttons */
-.m{font-family:var(--mono)}
-.label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-
-/* ---------- buttons ---------- */
-.btn{
-  font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;
-  padding:8px 14px;border-radius:8px;border:1px solid var(--line);
-  background:var(--panel-2);color:var(--text);
-  transition:background .15s,border-color .15s,transform .05s;
-}
-.btn:hover{background:#222740;border-color:#39405c}
-.btn:active{transform:translateY(1px)}
-.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
-.btn-accent{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
-.btn-accent:hover{background:#9c8ff8;border-color:#9c8ff8}
-.btn-ghost{background:transparent;border-color:transparent;color:var(--muted)}
-.btn-ghost:hover{background:var(--panel-2);color:var(--text);border-color:var(--line)}
-.btn-danger{color:var(--danger)}
-.btn-danger:hover{border-color:var(--danger)}
-
-/* ---------- fields ---------- */
-.field{margin-bottom:14px}
-.field label{display:block;margin-bottom:6px}
-.input{
-  width:100%;padding:9px 11px;border-radius:8px;
-  border:1px solid var(--line);background:var(--ink);color:var(--text);
-  font-family:var(--mono);font-size:13.5px;
-  transition:border-color .15s;
-}
-.input:focus{border-color:var(--accent)}
-.input::placeholder{color:#565d75}
-.hint{font-size:12.5px;color:var(--muted);margin-top:5px}
-
-/* ---------- connect view ---------- */
-#connect{min-height:100%;display:flex;align-items:center;justify-content:center;padding:32px 16px}
-.card{
-  width:100%;max-width:460px;background:var(--panel);
-  border:1px solid var(--line);border-radius:14px;padding:30px 28px 24px;
-}
-.wordmark{font-family:var(--mono);font-weight:700;font-size:22px;letter-spacing:-.02em}
-.wordmark .tick{color:var(--accent)}
-.tagline{color:var(--muted);margin:4px 0 24px;font-size:14px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.check{display:flex;gap:9px;align-items:flex-start;font-size:13px;color:var(--muted);margin:4px 0 18px}
-.check input{margin-top:3px;accent-color:var(--accent)}
-.err{
-  display:none;margin:0 0 14px;padding:10px 12px;border-radius:8px;
-  border:1px solid rgba(240,113,110,.4);background:rgba(240,113,110,.08);
-  color:#f5a09e;font-size:13px;font-family:var(--mono);white-space:pre-wrap;
-}
-.err.show{display:block}
-details.help{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
-details.help summary{cursor:pointer;color:var(--muted);font-size:13px;font-family:var(--mono)}
-details.help summary:hover{color:var(--text)}
-details.help ol{margin:10px 0 4px;padding-left:20px;color:var(--muted);font-size:13.5px}
-details.help li{margin-bottom:6px}
-details.help code{font-family:var(--mono);font-size:12.5px;background:var(--ink);border:1px solid var(--line);padding:1px 5px;border-radius:5px}
-
-/* ---------- app shell ---------- */
-#app{display:none;height:100vh;height:100dvh;flex-direction:column}
-#app.on{display:flex}
-header{
-  display:flex;align-items:center;gap:14px;
-  padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);
-  flex:0 0 auto;min-height:52px;
-}
-header .wordmark{font-size:16px}
-#remote{font-family:var(--mono);font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#remote b{color:var(--text);font-weight:500}
-header .spacer{flex:1}
-
-.shell{flex:1;display:flex;min-height:0}
-
-/* sidebar */
-aside{
-  width:248px;flex:0 0 auto;border-right:1px solid var(--line);
-  background:var(--panel);display:flex;flex-direction:column;min-height:0;
-}
-aside .head{padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between}
-#filelist{list-style:none;margin:0;padding:4px 8px;overflow:auto;flex:1}
-#filelist li{margin:2px 0}
-.fbtn{
-  width:100%;text-align:left;display:flex;align-items:center;gap:8px;
-  padding:7px 9px;border-radius:7px;border:1px solid transparent;background:none;
-  font-family:var(--mono);font-size:13px;color:var(--text);
-}
-.fbtn:hover{background:var(--panel-2)}
-.fbtn.active{background:var(--accent-soft);border-color:rgba(139,124,246,.35)}
-.fbtn .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fbtn .sz{font-size:11px;color:var(--muted)}
-.fbtn .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:0 0 auto;opacity:0}
-.fbtn.dirty .dot{opacity:1}
-.newrow{padding:10px;border-top:1px solid var(--line);display:flex;gap:8px}
-.newrow .input{flex:1;padding:7px 9px;font-size:12.5px}
-.empty{padding:18px 16px;color:var(--muted);font-size:13.5px}
-.empty .btn{margin-top:12px;width:100%}
-
-/* main / editor */
-main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
-.toolbar{
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  padding:10px 16px;border-bottom:1px solid var(--line);flex:0 0 auto;
-}
-#fname{font-family:var(--mono);font-size:13.5px}
-#fname .dirtymark{color:var(--accent);font-weight:700;margin-left:4px;visibility:hidden}
-#fname.dirty .dirtymark{visibility:visible}
-#commitmsg{flex:1;min-width:160px;max-width:440px;padding:7px 10px;font-size:12.5px}
-.tabs{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.tabs button{
-  font-family:var(--mono);font-size:12px;padding:7px 12px;border:0;
-  background:transparent;color:var(--muted);
-}
-.tabs button.on{background:var(--panel-2);color:var(--text)}
-
-#editorwrap{flex:1;display:flex;min-height:0;position:relative}
-#editor{
-  flex:1;resize:none;border:0;padding:18px 20px;
-  background:var(--ink);color:var(--text);
-  font-family:var(--mono);font-size:13.5px;line-height:1.65;
-  tab-size:2;white-space:pre;overflow:auto;
-}
-#preview{flex:1;display:none;border:0;background:#fff}
-#editorwrap.previewing #editor{display:none}
-#editorwrap.previewing #preview{display:block}
-.idle{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  color:var(--muted);font-family:var(--mono);font-size:13px;background:var(--ink);
-}
-
-/* signature: the commit trail */
-.trail{
-  flex:0 0 auto;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
-  padding:8px 16px;border-top:1px solid var(--line);background:var(--panel);
-  font-family:var(--mono);font-size:11.5px;color:var(--muted);min-height:34px;
-}
-.trail b{color:var(--text);font-weight:500}
-.trail .sha{color:var(--accent)}
-.trail .status{
-  padding:2px 7px;border-radius:999px;border:1px solid var(--line);
-  background:var(--ink);color:var(--muted);max-width:360px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.trail .status.ok{border-color:rgba(95,217,164,.45);color:var(--ok)}
-.trail .status.warn{border-color:rgba(242,177,80,.5);color:var(--warn)}
-.trail .status.err{border-color:rgba(240,113,110,.55);color:var(--danger)}
-
-/* deploy feedback */
-.deploy-panel{
-  display:none;flex:0 0 auto;padding:10px 16px;border-bottom:1px solid var(--line);
-  background:rgba(139,124,246,.07);font-family:var(--mono);font-size:12.5px;color:var(--text);
-}
-.deploy-panel.show{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.deploy-panel .deploy-line{flex:1;min-width:220px;color:var(--muted)}
-.deploy-panel .deploy-line b{color:var(--text);font-weight:600}
-.deploy-panel .deploy-line .sha{color:var(--accent)}
-.deploy-panel.ok{border-bottom-color:rgba(95,217,164,.45);background:rgba(95,217,164,.07)}
-.deploy-panel.warn{border-bottom-color:rgba(242,177,80,.45);background:rgba(242,177,80,.07)}
-.deploy-panel.err{border-bottom-color:rgba(240,113,110,.45);background:rgba(240,113,110,.07)}
-.deploy-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.deploy-actions a{text-decoration:none}
-.trail .pulse{animation:pulse 1.2s ease-out 1}
-@keyframes pulse{0%{color:var(--ok)}100%{color:var(--accent)}}
-@media (prefers-reduced-motion:reduce){.trail .pulse{animation:none}}
-
-
-
-/* media drawer */
-.media-drawer{
-  width:312px;flex:0 0 auto;border-left:1px solid var(--line);
-  background:var(--panel);display:none;flex-direction:column;min-height:0;
-}
-.media-drawer.on{display:flex}
-.media-drawer .head{
-  padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;
-}
-.media-meta{padding:0 14px 10px;color:var(--muted);font-family:var(--mono);font-size:11.5px;word-break:break-all}
-.dropzone{
-  margin:4px 14px 12px;padding:14px 12px;border:1px dashed #3b435d;border-radius:10px;
-  background:rgba(139,124,246,.06);display:flex;flex-direction:column;gap:4px;
-  align-items:center;justify-content:center;text-align:center;color:var(--muted);
-  font-family:var(--mono);font-size:12px;min-height:86px;cursor:pointer;
-}
-.dropzone:hover,.dropzone.drag{border-color:var(--accent);background:var(--accent-soft);color:var(--text)}
-.dropzone strong{color:var(--text);font-size:12.5px}
-.dropzone small{font-size:11px;color:var(--muted)}
-.media-list{overflow:auto;flex:1;padding:0 10px 10px}
-.media-item{
-  display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:center;
-  border:1px solid var(--line);border-radius:10px;background:var(--ink);
-  margin:0 0 8px;padding:8px;
-}
-.media-thumb{
-  width:52px;height:52px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);
-  object-fit:cover;display:block;
-}
-.media-info{min-width:0}
-.media-name{font-family:var(--mono);font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.media-url{font-family:var(--mono);font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
-.media-actions{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
-.media-actions .btn{font-size:11px;padding:5px 8px;border-radius:7px}
-.media-empty{padding:14px;color:var(--muted);font-size:13px;font-family:var(--mono)}
-
-/* settings drawer */
-.settings-drawer{
-  width:312px;flex:0 0 auto;border-left:1px solid var(--line);
-  background:var(--panel);display:none;flex-direction:column;min-height:0;
-}
-.settings-drawer.on{display:flex}
-.settings-drawer .head{
-  padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;
-}
-.settings-meta{padding:0 14px 10px;color:var(--muted);font-family:var(--mono);font-size:11.5px;word-break:break-all}
-.settings-body{padding:4px 14px 14px;overflow:auto;flex:1}
-.settings-body .field{margin-bottom:12px}
-.settings-body .hint{font-size:12px}
-.settings-actions{padding:12px 14px;border-top:1px solid var(--line)}
-.settings-actions .btn{width:100%}
-
-/* conflict banner, styled as a merge prompt */
-#conflict{
-  display:none;flex:0 0 auto;padding:12px 16px;border-bottom:1px solid rgba(242,177,80,.45);
-  background:rgba(242,177,80,.07);font-family:var(--mono);font-size:12.5px;
-}
-#conflict.show{display:block}
-#conflict .head7{color:var(--warn);font-weight:700;white-space:pre-wrap;margin-bottom:8px}
-#conflict .acts{display:flex;gap:10px;flex-wrap:wrap}
-
-/* toasts */
-#toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:50}
-.toast{
-  font-family:var(--mono);font-size:12.5px;padding:10px 14px;border-radius:8px;
-  border:1px solid var(--line);background:var(--panel);color:var(--text);
-  box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:340px;
-}
-.toast.ok{border-color:rgba(95,217,164,.5)}
-.toast.err{border-color:rgba(240,113,110,.55)}
-
-/* responsive */
-@media (max-width:760px){
-  .shell{flex-direction:column}
-  aside{width:100%;max-height:38vh;border-right:0;border-bottom:1px solid var(--line)}
-  .media-drawer,.settings-drawer{width:100%;max-height:42vh;border-left:0;border-top:1px solid var(--line)}
-  #remote{display:none}
-  #commitmsg{max-width:none}
-}
-</style>
-</head>
-<body>
-
-<!-- ================= connect ================= -->
-<section id="connect">
-  <form class="card" id="connectform" autocomplete="off">
-    <div class="wordmark">git<span class="tick">⌥</span>cms</div>
-    <p class="tagline">Your repo is the database. This page is the whole admin.</p>
-
-    <div class="err" id="cerr"></div>
-
-    <div class="row2">
-      <div class="field">
-        <label class="label" for="f-owner">owner</label>
-        <input class="input" id="f-owner" placeholder="zsolt" required>
-      </div>
-      <div class="field">
-        <label class="label" for="f-repo">site repo</label>
-        <input class="input" id="f-repo" placeholder="my-site — or paste its URL" required>
-      </div>
-    </div>
-    <div class="row2">
-      <div class="field">
-        <label class="label" for="f-branch">branch</label>
-        <input class="input" id="f-branch" value="main" required>
-      </div>
-      <div class="field">
-        <label class="label" for="f-config-path">config file</label>
-        <input class="input" id="f-config-path" value="gitcms.config.json" required>
-      </div>
-    </div>
-    <div class="hint" style="margin:-4px 0 14px">Project paths are loaded from <span class="m">gitcms.config.json</span>. If it does not exist, GitCMS uses safe defaults and you can save them from Settings.</div>
-    <div class="field">
-      <label class="label" for="f-token">fine-grained token</label>
-      <input class="input" id="f-token" type="password" placeholder="github_pat_…" required>
-      <div class="hint">Scope it to the site repo only, Contents: read &amp; write. It is sent only to api.github.com.</div>
-    </div>
-    <label class="check">
-      <input type="checkbox" id="f-remember">
-      <span>Remember the token in this browser (localStorage). Leave off on shared machines; the rest of the form is remembered either way.</span>
-    </label>
-
-    <button class="btn btn-accent" id="connectbtn" type="submit" style="width:100%">Connect</button>
-
-    <details class="help">
-      <summary>How to create the token</summary>
-      <ol>
-        <li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → Generate new token.</li>
-        <li>Resource owner: your account. Repository access: <b>Only select repositories</b> → the site repo.</li>
-        <li>Permissions → Repository permissions → <b>Contents: Read and write</b>. Nothing else.</li>
-        <li>Pick a short expiry. Paste it above — it never touches any repo.</li>
-      </ol>
-    </details>
-  </form>
-</section>
-
-<!-- ================= app ================= -->
-<section id="app">
-  <header>
-    <div class="wordmark">git<span class="tick">⌥</span>cms</div>
-    <div id="remote"></div>
-    <div class="spacer"></div>
-    <button class="btn btn-ghost" id="settingsbtn" disabled>settings</button>
-    <button class="btn btn-ghost" id="refreshbtn" title="Reload the file list from GitHub">↻ refresh</button>
-    <button class="btn btn-ghost" id="disconnectbtn">disconnect</button>
-  </header>
-
-  <div id="conflict">
-    <div class="head7" id="conflicttext"></div>
-    <div class="acts">
-      <button class="btn" id="keepminebtn">keep mine — commit over theirs</button>
-      <button class="btn" id="taketheirsbtn">take GitHub's — discard my edit</button>
-    </div>
-  </div>
-
-  <div id="deploypanel" class="deploy-panel" aria-live="polite">
-    <div class="deploy-line" id="deploytext">No deployment tracked yet.</div>
-    <div class="deploy-actions">
-      <button class="btn" id="checkdeploybtn" type="button">check deploy</button>
-      <a class="btn" id="actionslink" href="#" target="_blank" rel="noopener">open actions</a>
-      <a class="btn" id="pagelink" href="#" target="_blank" rel="noopener">view site</a>
-      <button class="btn btn-ghost" id="hidedeploybtn" type="button">hide</button>
-    </div>
-  </div>
-
-  <div class="shell">
-    <aside>
-      <div class="head">
-        <span class="label">partials</span>
-        <span class="label" id="filecount"></span>
-      </div>
-      <ul id="filelist"></ul>
-      <div class="empty" id="emptystate" style="display:none"></div>
-      <div class="newrow">
-        <input class="input" id="newname" placeholder="new-section.html" spellcheck="false">
-        <button class="btn" id="newbtn" title="Create a new partial">+ new</button>
-      </div>
-    </aside>
-
-    <main>
-      <div class="toolbar">
-        <span id="fname"><span class="path">no file open</span><span class="dirtymark">±</span></span>
-        <input class="input" id="commitmsg" placeholder="commit message (optional)" spellcheck="false" disabled>
-        <div class="tabs">
-          <button type="button" id="tab-edit" class="on">edit</button>
-          <button type="button" id="tab-preview">preview</button>
-        </div>
-        <button class="btn" id="mediabtn" disabled>media</button>
-        <button class="btn btn-accent" id="savebtn" disabled>Commit</button>
-        <button class="btn btn-ghost btn-danger" id="deletebtn" disabled title="Delete this partial from the repo">delete</button>
-      </div>
-
-      <div id="editorwrap">
-        <textarea id="editor" spellcheck="false" disabled></textarea>
-        <iframe id="preview" title="Standalone preview of the partial" sandbox=""></iframe>
-        <div class="idle" id="idle">pick a partial on the left, or create one</div>
-      </div>
-
-      <div class="trail" id="trail">
-        <span>blob <b class="sha" id="t-blob">—</b></span>
-        <span><b id="t-size">—</b></span>
-        <span id="t-last">nothing committed this session</span>
-        <span class="status" id="t-status" title="Current editor status">ready</span>
-        <span style="margin-left:auto">⌘/Ctrl+S commits</span>
-      </div>
-    </main>
-    <section class="media-drawer" id="mediaDrawer" aria-label="Media library">
-      <div class="head">
-        <span class="label">media</span>
-        <button class="btn btn-ghost" id="closemediabtn" type="button" title="Close media drawer">×</button>
-      </div>
-      <div class="media-meta" id="mediapathlabel">media folder not connected</div>
-      <label class="dropzone" id="mediadrop">
-        <input type="file" id="mediafile" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif" multiple hidden>
-        <strong>drop image or click to upload</strong>
-        <small>jpg, png, webp, gif · max 5 MB each</small>
-      </label>
-      <div class="media-list" id="medialist"></div>
-      <div class="media-empty" id="mediaempty" style="display:none"></div>
-    </section>
-    <section class="settings-drawer" id="settingsDrawer" aria-label="GitCMS settings">
-      <div class="head">
-        <span class="label">settings</span>
-        <button class="btn btn-ghost" id="closesettingsbtn" type="button" title="Close settings">×</button>
-      </div>
-      <div class="settings-meta" id="settingsmetalabel">config not connected</div>
-      <div class="settings-body">
-        <div class="field">
-          <label class="label" for="s-partials-dir">partials folder</label>
-          <input class="input" id="s-partials-dir" value="partials" spellcheck="false">
-          <div class="hint">Repo folder containing editable HTML fragments.</div>
-        </div>
-        <div class="field">
-          <label class="label" for="s-media-dir">media folder</label>
-          <input class="input" id="s-media-dir" value="media" spellcheck="false">
-          <div class="hint">Repo folder where uploaded images are committed.</div>
-        </div>
-        <div class="field">
-          <label class="label" for="s-media-public">public media path</label>
-          <input class="input" id="s-media-public" value="./media/" spellcheck="false">
-          <div class="hint">Path inserted into HTML, e.g. <span class="m">./media/</span> for GitHub Pages project sites.</div>
-        </div>
-        <div class="field">
-          <label class="label" for="s-max-upload">max upload bytes</label>
-          <input class="input" id="s-max-upload" value="5242880" spellcheck="false">
-        </div>
-        <div class="field">
-          <label class="label" for="s-allowed-ext">allowed image extensions</label>
-          <input class="input" id="s-allowed-ext" value="jpg, jpeg, png, webp, gif" spellcheck="false">
-        </div>
-        <div class="field">
-          <label class="label" for="s-source-dir">build source folder</label>
-          <input class="input" id="s-source-dir" value="src" spellcheck="false">
-          <div class="hint">Source folder used by the build workflow. For this project, use <span class="m">src</span>.</div>
-        </div>
-        <div class="field">
-          <label class="label" for="s-output-dir">build output folder</label>
-          <input class="input" id="s-output-dir" value="dist" spellcheck="false">
-          <div class="hint">Generated public folder deployed by GitHub Pages. Normally <span class="m">dist</span>.</div>
-        </div>
-      </div>
-      <div class="settings-actions">
-        <button class="btn btn-accent" id="s-savebtn" type="button">Save config</button>
-      </div>
-    </section>
-  </div>
-</section>
-
-<div id="toasts"></div>
-
-<script>
 "use strict";
 
 /*
@@ -511,6 +30,16 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
   const textSize = text => new TextEncoder().encode(text).length;
   const segEncode = path => path.split("/").map(encodeURIComponent).join("/");
   const attrEsc = value => esc(value).replace(/`/g, "&#96;");
+  const REQUEST_TIMEOUT_MS = 20000;
+
+  function isAbsoluteRepoPath(value){
+    const path = String(value || "").trim();
+    return path.startsWith("/") || /^[A-Za-z]:[\/]/.test(path) || path.startsWith("\\");
+  }
+
+  function isRequestCanceled(error){
+    return !!error && (error.code === "REQUEST_ABORTED" || error.status === 499 || error.name === "AbortError");
+  }
 
   function mediaPlaceholderDataUrl(name){
     const label = String(name || "IMG").slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -649,8 +178,13 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
       throw new Error("Config error: build output folder should not be inside the source folder.");
     }
 
-    if ([sourceDir, outputDir, normalized.content.partialsDir, normalized.media.mediaDir].some(value => value.includes(".."))){
+    const repoPaths = [sourceDir, outputDir, normalized.content.partialsDir, normalized.media.mediaDir];
+    if (repoPaths.some(value => value.includes(".."))){
       throw new Error("Config error: repo paths must not contain '..'.");
+    }
+
+    if (repoPaths.some(isAbsoluteRepoPath)){
+      throw new Error("Config error: repo paths must be relative to the repository root.");
     }
 
     return normalized;
@@ -666,6 +200,10 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
         return `Forbidden (403): ${error.message} — often rate limiting or missing token permission.`;
       case 404:
         return "Not found (404). Check owner, repo, branch and folder — a fine-grained token without repo access can also show as 404.";
+      case 408:
+        return "Request timed out while talking to api.github.com. Please retry.";
+      case 499:
+        return "Request canceled.";
       default:
         return error.message;
     }
@@ -675,21 +213,60 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
   class SafeStore {
     constructor(key){
       this.key = key;
+      this.sessionKey = `${key}.session`;
       this.memory = null;
     }
 
     get(){
+      let base = null;
+      let session = null;
+
       try {
-        return JSON.parse(localStorage.getItem(this.key)) || this.memory;
+        base = JSON.parse(localStorage.getItem(this.key));
       } catch(_error){
-        return this.memory;
+        base = null;
       }
+
+      if (base && base.remember && base.token){
+        try {
+          sessionStorage.setItem(this.sessionKey, JSON.stringify({ token: base.token, remember: true }));
+        } catch(_error){}
+        base = { ...base, token: "" };
+        try {
+          localStorage.setItem(this.key, JSON.stringify(base));
+        } catch(_error){}
+      }
+
+      try {
+        session = JSON.parse(sessionStorage.getItem(this.sessionKey));
+      } catch(_error){
+        session = null;
+      }
+
+      const merged = {
+        ...(base && typeof base === "object" ? base : {}),
+        ...(session && typeof session === "object" ? session : {})
+      };
+
+      if (Object.keys(merged).length) return merged;
+      return this.memory;
     }
 
     set(value){
-      this.memory = value;
+      const safeValue = value && typeof value === "object" ? value : {};
+      this.memory = safeValue;
+
       try {
-        localStorage.setItem(this.key, JSON.stringify(value));
+        const localPayload = { ...safeValue, token: "" };
+        localStorage.setItem(this.key, JSON.stringify(localPayload));
+      } catch(_error){}
+
+      try {
+        if (safeValue.remember && safeValue.token){
+          sessionStorage.setItem(this.sessionKey, JSON.stringify({ token: safeValue.token, remember: true }));
+        } else {
+          sessionStorage.removeItem(this.sessionKey);
+        }
       } catch(_error){}
     }
 
@@ -697,6 +274,9 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
       this.memory = null;
       try {
         localStorage.removeItem(this.key);
+      } catch(_error){}
+      try {
+        sessionStorage.removeItem(this.sessionKey);
       } catch(_error){}
     }
   }
@@ -706,12 +286,32 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
       this.config = config;
     }
 
-    async request(path, { method = "GET", body } = {}){
+    async request(path, { method = "GET", body, signal, timeoutMs = REQUEST_TIMEOUT_MS } = {}){
       let response;
+      let didTimeout = false;
+      let onAbort;
       const isGet = method.toUpperCase() === "GET";
       const cacheBustedPath = isGet
         ? path + (path.includes("?") ? "&" : "?") + `gitcms_cache=${Date.now()}-${Math.random().toString(36).slice(2)}`
         : path;
+      const controller = new AbortController();
+      const timeout = Number(timeoutMs) > 0 ? Number(timeoutMs) : REQUEST_TIMEOUT_MS;
+      const timeoutId = setTimeout(() => {
+        didTimeout = true;
+        controller.abort();
+      }, timeout);
+
+      if (signal){
+        if (signal.aborted){
+          clearTimeout(timeoutId);
+          const canceled = new Error("Request canceled.");
+          canceled.status = 499;
+          canceled.code = "REQUEST_ABORTED";
+          throw canceled;
+        }
+        onAbort = () => controller.abort();
+        signal.addEventListener("abort", onAbort, { once: true });
+      }
 
       try {
         response = await fetch(API + cacheBustedPath, {
@@ -723,12 +323,22 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
             "X-GitHub-Api-Version": "2022-11-28",
             ...(body ? { "Content-Type": "application/json" } : {})
           },
-          body: body ? JSON.stringify(body) : undefined
+          body: body ? JSON.stringify(body) : undefined,
+          signal: controller.signal
         });
       } catch(_networkError){
+        if (controller.signal.aborted){
+          const error = new Error(didTimeout ? `Request timed out after ${timeout} ms.` : "Request canceled.");
+          error.status = didTimeout ? 408 : 499;
+          error.code = didTimeout ? "REQUEST_TIMEOUT" : "REQUEST_ABORTED";
+          throw error;
+        }
         const error = new Error("Network error — check your connection, browser permissions, or api.github.com access.");
         error.status = 0;
         throw error;
+      } finally {
+        clearTimeout(timeoutId);
+        if (signal && onAbort) signal.removeEventListener("abort", onAbort);
       }
 
       if (!response.ok){
@@ -757,7 +367,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
       return this.request(this.repoPath());
     }
 
-    listWorkflowRuns({ branch, perPage = 5 } = {}){
+    listWorkflowRuns({ branch, perPage = 20 } = {}){
       const params = new URLSearchParams();
       if (branch) params.set("branch", branch);
       params.set("per_page", String(perPage));
@@ -815,22 +425,22 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
     }
 
     /* Git Data API: immutable commit/tree/blob model for CMS-critical fragment edits. */
-    async getBranchHead(){
-      const ref = await this.request(this.repoPath(this.branchRefPath()));
+    async getBranchHead(options = {}){
+      const ref = await this.request(this.repoPath(this.branchRefPath()), options);
       return ref.object.sha;
     }
 
-    getCommit(commitSha){
-      return this.request(this.repoPath(`/git/commits/${encodeURIComponent(commitSha)}`));
+    getCommit(commitSha, options = {}){
+      return this.request(this.repoPath(`/git/commits/${encodeURIComponent(commitSha)}`), options);
     }
 
-    getTree(treeSha, { recursive = true } = {}){
+    getTree(treeSha, { recursive = true, signal, timeoutMs } = {}){
       const suffix = recursive ? "?recursive=1" : "";
-      return this.request(this.repoPath(`/git/trees/${encodeURIComponent(treeSha)}${suffix}`));
+      return this.request(this.repoPath(`/git/trees/${encodeURIComponent(treeSha)}${suffix}`), { signal, timeoutMs });
     }
 
-    getBlob(blobSha){
-      return this.request(this.repoPath(`/git/blobs/${encodeURIComponent(blobSha)}`));
+    getBlob(blobSha, options = {}){
+      return this.request(this.repoPath(`/git/blobs/${encodeURIComponent(blobSha)}`), options);
     }
 
     createBlob(text){
@@ -881,7 +491,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
     }
 
     async latestForBranch(branch){
-      const result = await this.github.listWorkflowRuns({ branch, perPage: 5 });
+      const result = await this.github.listWorkflowRuns({ branch });
       return Array.isArray(result.workflow_runs) ? result.workflow_runs : [];
     }
   }
@@ -946,11 +556,11 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
       this.dir = dir.replace(/^\/+|\/+$/g, "") || "partials";
     }
 
-    async snapshot(){
-      const headSha = await this.github.getBranchHead();
-      const commit = await this.github.getCommit(headSha);
+    async snapshot(options = {}){
+      const headSha = await this.github.getBranchHead(options);
+      const commit = await this.github.getCommit(headSha, options);
       const treeSha = commit.tree.sha;
-      const tree = await this.github.getTree(treeSha, { recursive: true });
+      const tree = await this.github.getTree(treeSha, { recursive: true, ...options });
 
       return {
         headSha,
@@ -994,8 +604,8 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
         .sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    async read(path){
-      const snapshot = await this.snapshot();
+    async read(path, options = {}){
+      const snapshot = await this.snapshot(options);
       const entry = this.entryFor(snapshot, path);
 
       if (!entry){
@@ -1010,7 +620,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
         throw error;
       }
 
-      const blob = await this.github.getBlob(entry.sha);
+      const blob = await this.github.getBlob(entry.sha, options);
       const text = blob.encoding === "base64" ? dec64(blob.content) : String(blob.content || "");
 
       return {
@@ -1236,7 +846,8 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
             type: this.mimeFromName(file.name),
             publicUrl,
             downloadUrl: file.download_url || "",
-            previewUrl: file.download_url || publicUrl
+            previewUrl: file.download_url || publicUrl,
+            commitSha: ""
           };
         })
         .sort((a, b) => a.name.localeCompare(b.name));
@@ -1258,7 +869,10 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
       const existingNames = new Set(existingFiles.map(item => item.name.toLowerCase()));
       const safeName = this.uniqueName(this.sanitizeFileName(file.name), existingNames);
       const path = `${this.dir}/${safeName}`;
-      const encodedContent = arrayBufferToBase64(await file.arrayBuffer());
+      const extension = String(safeName).split(".").pop().toLowerCase();
+      const buffer = await file.arrayBuffer();
+      this.assertImageSignature(buffer, extension);
+      const encodedContent = arrayBufferToBase64(buffer);
       const response = await this.github.writeEncodedFile(path, {
         encodedContent,
         message: `gitcms: upload media ${safeName}`
@@ -1269,12 +883,41 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
         path,
         sha: response.content.sha,
         size: file.size,
-        type: file.type || this.mimeFromName(safeName),
+        type: this.mimeFromName(safeName),
         publicUrl: this.publicUrlForPath(path),
         downloadUrl: response.content.download_url || "",
         previewUrl: response.content.download_url || this.publicUrlForPath(path),
         commitSha: response.commit ? response.commit.sha : ""
       };
+    }
+
+    assertImageSignature(buffer, extension){
+      const bytes = new Uint8Array(buffer);
+
+      const isJpeg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+      const isPng = bytes.length >= 8 &&
+        bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 &&
+        bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a;
+      const isGif = bytes.length >= 6 &&
+        bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38 &&
+        (bytes[4] === 0x37 || bytes[4] === 0x39) && bytes[5] === 0x61;
+      const isWebp = bytes.length >= 12 &&
+        bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+        bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+
+      const matches = {
+        jpg: isJpeg,
+        jpeg: isJpeg,
+        png: isPng,
+        gif: isGif,
+        webp: isWebp
+      };
+
+      if (!matches[extension]){
+        const error = new Error(`File signature does not match .${extension} extension.`);
+        error.status = 400;
+        throw error;
+      }
     }
 
     isAllowedName(name){
@@ -1613,11 +1256,11 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
       const content = projectConfig.content;
       const media = projectConfig.media;
       const configState = configInfo && configInfo.exists ? "config" : "defaults";
-      this.remote.innerHTML =
-        `<b>${esc(connectionConfig.owner)}/${esc(connectionConfig.repo)}</b> @ ${esc(connectionConfig.branch)}` +
-        ` · ${esc(configInfo.path || connectionConfig.configPath || "gitcms.config.json")} ${configState}` +
-        ` · partials /${esc(content.partialsDir)}` +
-        ` · media /${esc(media.mediaDir)} → ${esc(media.publicPath)}`;
+      this.remote.textContent =
+        `${connectionConfig.owner}/${connectionConfig.repo} @ ${connectionConfig.branch}` +
+        ` · ${configInfo.path || connectionConfig.configPath || "gitcms.config.json"} ${configState}` +
+        ` · partials /${content.partialsDir}` +
+        ` · media /${media.mediaDir} → ${media.publicPath}`;
     }
 
     showConnect(config){
@@ -1978,7 +1621,7 @@ class FileListView {
       const repo = encodeURIComponent(config.repo || "");
       this.branch = config.branch || "";
       this.actionsLink.href = `https://github.com/${owner}/${repo}/actions`;
-      this.pageLink.href = `https://${config.owner}.github.io/${config.repo}/`;
+      this.pageLink.href = `https://${owner}.github.io/${repo}/`;
     }
 
     hide(){
@@ -1990,7 +1633,7 @@ class FileListView {
       this.branch = branch || this.branch;
       this.root.className = "deploy-panel show warn";
       const shortSha = this.lastCommitSha ? this.lastCommitSha.slice(0, 7) : "unknown";
-      this.text.innerHTML = `${esc(label || "Commit")} <b class="sha">${esc(shortSha)}</b> saved. GitHub Actions should build and deploy from <b>${esc(this.branch || "current branch")}</b>.`;
+      this.text.textContent = `${label || "Commit"} ${shortSha} saved. GitHub Actions should build and deploy from ${this.branch || "current branch"}.`;
       this.checkButton.disabled = false;
       this.checkButton.textContent = "check deploy";
     }
@@ -2019,25 +1662,25 @@ class FileListView {
 
       if (status === "completed" && conclusion === "success"){
         this.root.className = "deploy-panel show ok";
-        this.text.innerHTML = `Deploy workflow succeeded for <b class="sha">${esc(shortSha)}</b>. Public site may need a hard refresh.`;
+        this.text.textContent = `Deploy workflow succeeded for ${shortSha}. Public site may need a hard refresh.`;
         return;
       }
 
       if (status === "completed"){
         this.root.className = "deploy-panel show err";
-        this.text.innerHTML = `Deploy workflow completed with <b>${esc(conclusion || "unknown result")}</b> for <b class="sha">${esc(shortSha)}</b>. Open Actions.`;
+        this.text.textContent = `Deploy workflow completed with ${conclusion || "unknown result"} for ${shortSha}. Open Actions.`;
         return;
       }
 
       this.root.className = "deploy-panel show warn";
-      this.text.innerHTML = `Deploy workflow is <b>${esc(status)}</b> for <b class="sha">${esc(shortSha)}</b>.`;
+      this.text.textContent = `Deploy workflow is ${status} for ${shortSha}.`;
     }
 
     showError(message){
       this.checkButton.disabled = false;
       this.checkButton.textContent = "check deploy";
       this.root.className = "deploy-panel show warn";
-      this.text.textContent = `${message} Open Actions to inspect manually.`;
+      this.text.textContent = `${message}. Open Actions to inspect manually.`;
     }
   }
 
@@ -2056,12 +1699,44 @@ class FileListView {
       this.allowedExtensions = $("#s-allowed-ext");
       this.sourceDir = $("#s-source-dir");
       this.outputDir = $("#s-output-dir");
+      this.fields = [
+        this.partialsDir,
+        this.mediaDir,
+        this.publicMediaPath,
+        this.maxUploadBytes,
+        this.allowedExtensions,
+        this.sourceDir,
+        this.outputDir
+      ];
       this.currentConfig = normalizeProjectConfig({});
+      this.originalConfigText = this.serialize(this.currentConfig);
+      this.saving = false;
+      this.enabled = false;
+      this.fields.forEach(field => {
+        field.addEventListener("input", () => this.updateDirtyState());
+        field.addEventListener("change", () => this.updateDirtyState());
+      });
+      this.updateDirtyState();
+    }
+
+    serialize(config){
+      return JSON.stringify(normalizeProjectConfig(config));
+    }
+
+    isDirty(){
+      return this.serialize(this.read()) !== this.originalConfigText;
+    }
+
+    updateDirtyState(){
+      this.saveButton.disabled = !this.enabled || this.saving || !this.isDirty();
+      this.saveButton.textContent = this.saving ? "Saving…" : (this.isDirty() ? "Save config" : "Config saved");
     }
 
     setEnabled(enabled){
+      this.enabled = !!enabled;
       this.toggleButton.disabled = !enabled;
       if (!enabled) this.close();
+      this.updateDirtyState();
     }
 
     onToggle(callback){
@@ -2073,7 +1748,10 @@ class FileListView {
     }
 
     onSave(callback){
-      this.saveButton.onclick = () => callback(this.read());
+      this.saveButton.onclick = () => {
+        if (this.saveButton.disabled || !this.isDirty()) return;
+        callback(this.read());
+      };
     }
 
     toggle(){
@@ -2095,6 +1773,7 @@ class FileListView {
     render(config, info){
       const normalized = normalizeProjectConfig(config);
       this.currentConfig = normalized;
+      this.originalConfigText = this.serialize(normalized);
       this.meta.textContent = `${info.path || "gitcms.config.json"} · ${info.exists ? "loaded from repo" : "using defaults, save to create"}`;
       this.partialsDir.value = normalized.content.partialsDir;
       this.mediaDir.value = normalized.media.mediaDir;
@@ -2103,6 +1782,7 @@ class FileListView {
       this.allowedExtensions.value = normalized.media.allowedExtensions.join(", ");
       this.sourceDir.value = normalized.build.sourceDir;
       this.outputDir.value = normalized.build.outputDir;
+      this.updateDirtyState();
     }
 
     read(){
@@ -2134,8 +1814,8 @@ class FileListView {
     }
 
     setSaving(isSaving){
-      this.saveButton.disabled = isSaving;
-      this.saveButton.textContent = isSaving ? "Saving…" : "Save config";
+      this.saving = !!isSaving;
+      this.updateDirtyState();
     }
   }
 
@@ -2182,6 +1862,7 @@ class FileListView {
       this.settingsView = new SettingsView();
       this.deploymentView = new DeploymentView();
       this.conflictView = new ConflictView();
+      this.openFileAbortController = null;
     }
 
     init(){
@@ -2328,6 +2009,7 @@ class FileListView {
         this.projectConfigSha = saved.sha;
         this.projectConfigExists = true;
         this.applyProjectConfig();
+        this.settingsView.render(this.projectConfig, this.configInfo());
         this.state.setFiles([]);
         this.state.setMediaFiles([]);
         this.closeEditor();
@@ -2398,21 +2080,36 @@ class FileListView {
         if (!confirm(`Discard uncommitted edits in ${name}?`)) return;
       }
 
+      if (this.openFileAbortController) this.openFileAbortController.abort();
+      const openController = new AbortController();
+      this.openFileAbortController = openController;
+
       this.hideConflict();
       this.editorView.showLoading(path);
       this.status.set(`loading ${path}…`);
 
       try {
-        const fragment = await this.fragments.read(path);
+        const fragment = await this.fragments.read(path, { signal: openController.signal });
+        if (this.openFileAbortController !== openController) return;
         this.state.openFile(fragment);
         this.editorView.showFile(this.state.currentFile);
         this.refreshDirtyUI();
         this.status.set(`opened ${fragment.name}`, "ok");
       } catch(error){
+        if (this.openFileAbortController !== openController) return;
+        if (isRequestCanceled(error)){
+          this.status.set(error.status === 408 ? "open timed out" : "open canceled", "warn");
+          this.toasts.show(friendly(error), error.status === 408 ? "err" : "warn");
+          return;
+        }
         this.state.closeFile();
         this.editorView.showError(friendly(error));
         this.refreshDirtyUI();
         this.status.set("open failed", "err");
+      } finally {
+        if (this.openFileAbortController === openController){
+          this.openFileAbortController = null;
+        }
       }
     }
 
@@ -2536,15 +2233,20 @@ class FileListView {
         this.completeCommit(response, text);
       } catch(error){
         if (error.status === 409 || error.status === 422){
+          let recovered = false;
           try {
-            const recovered = !isForcedCommit && await this.tryRecoverStaleShaCommit(text);
-            if (!recovered){
-              this.showConflict(text);
-              this.status.set("conflict detected", "warn");
-            }
+            recovered = !isForcedCommit && await this.tryRecoverStaleShaCommit(text);
           } catch(recoveryError){
-            this.status.set("commit failed", "err");
-            this.toasts.show(friendly(recoveryError), "err");
+            this.showConflict(text);
+            this.status.set("recovery failed", "err");
+            this.toasts.show(`Could not recover automatically: ${friendly(recoveryError)}`, "err");
+            return;
+          }
+
+          if (!recovered){
+            this.showConflict(text);
+            this.status.set("conflict detected", "warn");
+            this.toasts.show("File changed on GitHub. Choose Keep mine or Take theirs.", "warn");
           }
         } else {
           this.status.set("commit failed", "err");
@@ -2593,13 +2295,14 @@ class FileListView {
       const name = rawName || this.fileListView.getNewName();
 
       try {
-        this.status.set("creating partial…");
         const normalized = this.fragments.normalizeName(name);
         if (this.state.files.some(file => file.name === normalized)){
           this.toasts.show(`${normalized} already exists`, "err");
+          this.status.set("create failed", "err");
           return;
         }
 
+        this.status.set("creating partial…");
         const created = await this.fragments.create(normalized);
         this.fileListView.clearNewName();
         this.status.set(`created ${created.name}`, "ok");
@@ -2777,6 +2480,8 @@ class FileListView {
         this.store.clear();
       }
 
+      if (this.openFileAbortController) this.openFileAbortController.abort();
+      this.openFileAbortController = null;
       this.github = null;
       this.configRepo = null;
       this.projectConfig = defaultProjectConfig();
@@ -2810,6 +2515,3 @@ document.addEventListener("DOMContentLoaded", () => {
     new AppController().init();
   });
 })();
-</script>
-</body>
-</html>
