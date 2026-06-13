@@ -1863,6 +1863,9 @@ class FileListView {
       this.deploymentView = new DeploymentView();
       this.conflictView = new ConflictView();
       this.openFileAbortController = null;
+      this.dirtyUIRefreshTimer = null;
+      this.lastFileListKey = null;
+      this.isOnline = navigator.onLine;
     }
 
     init(){
@@ -1910,7 +1913,7 @@ class FileListView {
         }
       });
 
-      this.editorView.editor.addEventListener("input", () => this.refreshDirtyUI());
+      this.editorView.editor.addEventListener("input", () => this.scheduleDirtyUIRefresh());
       this.editorView.editor.addEventListener("keydown", event => this.handleEditorKeydown(event));
 
       document.addEventListener("keydown", event => {
@@ -1926,6 +1929,9 @@ class FileListView {
           event.returnValue = "";
         }
       });
+
+      window.addEventListener("online", () => this.handleNetworkChange(true));
+      window.addEventListener("offline", () => this.handleNetworkChange(false));
     }
 
     async connect(config, { silent = false } = {}){
@@ -2028,6 +2034,9 @@ class FileListView {
 
     async refreshAll(){
       if (!this.github) return;
+      const currentPath = this.state.currentFile ? this.state.currentFile.path : "";
+      const currentText = this.editorView.getText();
+      const hadUnsavedEdits = this.state.isDirty(currentText);
       try {
         await this.loadProjectConfig();
         this.applyProjectConfig();
@@ -2035,6 +2044,14 @@ class FileListView {
         this.toasts.show(friendly(error), "err");
       }
       await this.loadList();
+      if (currentPath && this.state.files.some(file => file.path === currentPath)){
+        await this.openFile(currentPath, { skipDirtyGuard: true });
+        if (hadUnsavedEdits && this.state.currentFile && this.state.currentFile.path === currentPath){
+          this.editorView.editor.value = currentText;
+          this.refreshDirtyUI();
+          this.toasts.show("Refreshed file metadata and restored your unsaved edits", "warn");
+        }
+      }
       if (this.mediaView.isOpen()) await this.loadMediaList();
     }
 
@@ -2065,12 +2082,14 @@ class FileListView {
     }
 
     renderFileList(){
+      const isDirty = this.state.isDirty(this.editorView.getText());
       this.fileListView.render(
         this.state.files,
         this.state.currentFile,
-        this.state.isDirty(this.editorView.getText()),
+        isDirty,
         path => this.openFile(path)
       );
+      this.lastFileListKey = this.fileListRenderKey(isDirty);
     }
 
     async openFile(path, { skipDirtyGuard = false } = {}){
@@ -2119,12 +2138,30 @@ class FileListView {
       this.renderFileList();
     }
 
+    scheduleDirtyUIRefresh(){
+      if (this.dirtyUIRefreshTimer) window.clearTimeout(this.dirtyUIRefreshTimer);
+      this.dirtyUIRefreshTimer = window.setTimeout(() => {
+        this.dirtyUIRefreshTimer = null;
+        this.refreshDirtyUI();
+      }, 120);
+    }
+
+    fileListRenderKey(isDirty){
+      const currentPath = this.state.currentFile ? this.state.currentFile.path : "";
+      const filesKey = this.state.files.map(file => `${file.path}:${file.sha}:${file.size}`).join("|");
+      return `${currentPath}:${isDirty ? 1 : 0}:${filesKey}`;
+    }
+
     refreshDirtyUI(){
-      const isDirty = this.state.isDirty(this.editorView.getText());
+      const text = this.editorView.getText();
+      const isDirty = this.state.isDirty(text);
       const canCommit = !!this.state.currentFile && !this.state.busy && isDirty;
       this.editorView.updateDirty(isDirty, canCommit);
-      this.editorView.updateTrail(this.currentFileForTrail(), this.editorView.getText());
-      this.renderFileList();
+      this.editorView.updateTrail(this.currentFileForTrail(), text);
+      const nextKey = this.fileListRenderKey(isDirty);
+      if (nextKey !== this.lastFileListKey){
+        this.renderFileList();
+      }
     }
 
     currentFileForTrail(){
@@ -2407,9 +2444,6 @@ class FileListView {
       }
 
       await this.loadMediaList();
-      window.setTimeout(() => {
-        if (this.mediaView.isOpen()) this.loadMediaList();
-      }, 1200);
     }
 
     insertMedia(media){
@@ -2470,6 +2504,17 @@ class FileListView {
       }
     }
 
+    handleNetworkChange(isOnline){
+      this.isOnline = !!isOnline;
+      if (this.isOnline){
+        this.status.set("back online", "ok");
+        this.toasts.show("Connection restored", "ok");
+      } else {
+        this.status.set("offline — edits stay local until reconnect", "warn");
+        this.toasts.show("You are offline. Commits will fail until connection returns.", "warn");
+      }
+    }
+
     disconnect(){
       if (this.state.isDirty(this.editorView.getText()) && !confirm("You have uncommitted edits. Disconnect anyway?")) return;
 
@@ -2482,6 +2527,10 @@ class FileListView {
 
       if (this.openFileAbortController) this.openFileAbortController.abort();
       this.openFileAbortController = null;
+      if (this.dirtyUIRefreshTimer){
+        window.clearTimeout(this.dirtyUIRefreshTimer);
+        this.dirtyUIRefreshTimer = null;
+      }
       this.github = null;
       this.configRepo = null;
       this.projectConfig = defaultProjectConfig();
