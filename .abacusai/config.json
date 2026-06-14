@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(Bash() *))"
+      "Bash(Bash() *))",
+      "Bash(node scripts/build-partials.mjs 2>& *)",
+      "Bash(fallow *)",
+      "Bash(fallow *)",
+      "Bash(node scripts/build-partials.mjs *)",
+      "Bash(node *)",
+      "Bash(node scripts/build-partials.mjs *)",
+      "Bash(npm install *)",
+      "Bash(git *)"
     ]
   }
 }

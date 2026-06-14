@@ -129,39 +129,70 @@
     };
   }
 
+  function asObject(value){
+    return value && typeof value === "object" ? value : {};
+  }
+
+  function normalizeAllowedExtensions(value, fallback){
+    if (!Array.isArray(value)) return fallback;
+    const normalized = value
+      .map(item => String(item).trim().replace(/^\./, "").toLowerCase())
+      .filter(Boolean);
+    return normalized.length ? [...new Set(normalized)] : fallback;
+  }
+
+  function normalizeStringList(value, fallback){
+    return Array.isArray(value) ? value.map(String) : fallback;
+  }
+
+  function normalizeTrimmed(value, fallback){
+    return String(value || fallback).trim() || fallback;
+  }
+
+  function normalizePositiveNumber(value, fallback){
+    const numeric = Number(value);
+    return numeric > 0 ? numeric : fallback;
+  }
+
+  function normalizeContentConfig(content, raw, defaults){
+    return {
+      partialsDir: cleanRepoDir(content.partialsDir || raw.dir, defaults.content.partialsDir),
+      partialLinkRel: normalizeTrimmed(content.partialLinkRel, defaults.content.partialLinkRel)
+    };
+  }
+
+  function normalizeMediaConfig(media, raw, defaults){
+    return {
+      mediaDir: cleanRepoDir(media.mediaDir || raw.mediaDir, defaults.media.mediaDir),
+      publicPath: normalizePublicPath(media.publicPath || raw.publicMediaPath, defaults.media.publicPath),
+      maxUploadBytes: normalizePositiveNumber(media.maxUploadBytes, defaults.media.maxUploadBytes),
+      allowedExtensions: normalizeAllowedExtensions(media.allowedExtensions, defaults.media.allowedExtensions)
+    };
+  }
+
+  function normalizeBuildConfig(build, defaults){
+    return {
+      sourceDir: cleanRepoDir(build.sourceDir, defaults.build.sourceDir),
+      outputDir: cleanRepoDir(build.outputDir, defaults.build.outputDir)
+    };
+  }
+
   function normalizeProjectConfig(rawConfig){
     const defaults = defaultProjectConfig();
-    const raw = rawConfig && typeof rawConfig === "object" ? rawConfig : {};
-    const content = raw.content && typeof raw.content === "object" ? raw.content : {};
-    const media = raw.media && typeof raw.media === "object" ? raw.media : {};
-    const preview = raw.preview && typeof raw.preview === "object" ? raw.preview : {};
-    const build = raw.build && typeof raw.build === "object" ? raw.build : {};
-
-    const allowedExtensions = Array.isArray(media.allowedExtensions)
-      ? media.allowedExtensions
-          .map(item => String(item).trim().replace(/^\./, "").toLowerCase())
-          .filter(Boolean)
-      : defaults.media.allowedExtensions;
+    const raw = asObject(rawConfig);
+    const content = asObject(raw.content);
+    const media = asObject(raw.media);
+    const preview = asObject(raw.preview);
+    const build = asObject(raw.build);
 
     return {
       version: Number(raw.version) || defaults.version,
-      content: {
-        partialsDir: cleanRepoDir(content.partialsDir || raw.dir, defaults.content.partialsDir),
-        partialLinkRel: String(content.partialLinkRel || defaults.content.partialLinkRel).trim() || defaults.content.partialLinkRel
-      },
-      media: {
-        mediaDir: cleanRepoDir(media.mediaDir || raw.mediaDir, defaults.media.mediaDir),
-        publicPath: normalizePublicPath(media.publicPath || raw.publicMediaPath, defaults.media.publicPath),
-        maxUploadBytes: Number(media.maxUploadBytes) > 0 ? Number(media.maxUploadBytes) : defaults.media.maxUploadBytes,
-        allowedExtensions: allowedExtensions.length ? [...new Set(allowedExtensions)] : defaults.media.allowedExtensions
-      },
+      content: normalizeContentConfig(content, raw, defaults),
+      media: normalizeMediaConfig(media, raw, defaults),
       preview: {
-        css: Array.isArray(preview.css) ? preview.css.map(String) : defaults.preview.css
+        css: normalizeStringList(preview.css, defaults.preview.css)
       },
-      build: {
-        sourceDir: String(build.sourceDir || defaults.build.sourceDir).trim() || defaults.build.sourceDir,
-        outputDir: String(build.outputDir || defaults.build.outputDir).trim() || defaults.build.outputDir
-      }
+      build: normalizeBuildConfig(build, defaults)
     };
   }
 
@@ -193,6 +224,9 @@
   function friendly(error){
     switch (error.status){
       case 0:
+        if (location.protocol === "file:"){
+          return "Network error — open this admin over http(s), not file://. Use a local server or GitHub Pages, then retry.";
+        }
         return "Network error — check your connection, browser permissions, or api.github.com access.";
       case 401:
         return "Token rejected (401). It may be expired or mistyped.";
@@ -217,53 +251,58 @@
       this.memory = null;
     }
 
+    parseStoredJSON(storage, key){
+      try {
+        return JSON.parse(storage.getItem(key));
+      } catch(_error){
+        return null;
+      }
+    }
+
+    persistLocalPayload(payload){
+      try {
+        localStorage.setItem(this.key, JSON.stringify(payload));
+      } catch(_error){}
+    }
+
+    persistSessionToken(token){
+      try {
+        sessionStorage.setItem(this.sessionKey, JSON.stringify({ token, remember: true }));
+      } catch(_error){}
+    }
+
+    migrateLegacyLocalToken(base){
+      if (!(base && base.remember && base.token)) return base;
+      this.persistSessionToken(base.token);
+      const scrubbed = { ...base, token: "" };
+      this.persistLocalPayload(scrubbed);
+      return scrubbed;
+    }
+
+    asObject(value){
+      return value && typeof value === "object" ? value : {};
+    }
+
     get(){
-      let base = null;
-      let session = null;
-
-      try {
-        base = JSON.parse(localStorage.getItem(this.key));
-      } catch(_error){
-        base = null;
-      }
-
-      if (base && base.remember && base.token){
-        try {
-          sessionStorage.setItem(this.sessionKey, JSON.stringify({ token: base.token, remember: true }));
-        } catch(_error){}
-        base = { ...base, token: "" };
-        try {
-          localStorage.setItem(this.key, JSON.stringify(base));
-        } catch(_error){}
-      }
-
-      try {
-        session = JSON.parse(sessionStorage.getItem(this.sessionKey));
-      } catch(_error){
-        session = null;
-      }
-
+      const base = this.migrateLegacyLocalToken(this.parseStoredJSON(localStorage, this.key));
+      const session = this.parseStoredJSON(sessionStorage, this.sessionKey);
       const merged = {
-        ...(base && typeof base === "object" ? base : {}),
-        ...(session && typeof session === "object" ? session : {})
+        ...this.asObject(base),
+        ...this.asObject(session)
       };
-
-      if (Object.keys(merged).length) return merged;
-      return this.memory;
+      return Object.keys(merged).length ? merged : this.memory;
     }
 
     set(value){
-      const safeValue = value && typeof value === "object" ? value : {};
+      const safeValue = this.asObject(value);
       this.memory = safeValue;
 
-      try {
-        const localPayload = { ...safeValue, token: "" };
-        localStorage.setItem(this.key, JSON.stringify(localPayload));
-      } catch(_error){}
+      const localPayload = { ...safeValue, token: "" };
+      this.persistLocalPayload(localPayload);
 
       try {
         if (safeValue.remember && safeValue.token){
-          sessionStorage.setItem(this.sessionKey, JSON.stringify({ token: safeValue.token, remember: true }));
+          this.persistSessionToken(safeValue.token);
         } else {
           sessionStorage.removeItem(this.sessionKey);
         }
@@ -286,72 +325,119 @@
       this.config = config;
     }
 
-    async request(path, { method = "GET", body, signal, timeoutMs = REQUEST_TIMEOUT_MS } = {}){
-      let response;
-      let didTimeout = false;
-      let onAbort;
+    createRequestContext(path, method, timeoutMs){
       const isGet = method.toUpperCase() === "GET";
-      const cacheBustedPath = isGet
+      const requestPath = isGet
         ? path + (path.includes("?") ? "&" : "?") + `gitcms_cache=${Date.now()}-${Math.random().toString(36).slice(2)}`
         : path;
       const controller = new AbortController();
       const timeout = Number(timeoutMs) > 0 ? Number(timeoutMs) : REQUEST_TIMEOUT_MS;
+      const state = { didTimeout: false };
       const timeoutId = setTimeout(() => {
-        didTimeout = true;
+        state.didTimeout = true;
         controller.abort();
       }, timeout);
+      return { isGet, requestPath, controller, timeout, timeoutId, state };
+    }
 
-      if (signal){
-        if (signal.aborted){
-          clearTimeout(timeoutId);
-          const canceled = new Error("Request canceled.");
-          canceled.status = 499;
-          canceled.code = "REQUEST_ABORTED";
-          throw canceled;
-        }
-        onAbort = () => controller.abort();
-        signal.addEventListener("abort", onAbort, { once: true });
+    abortError(){
+      const canceled = new Error("Request canceled.");
+      canceled.status = 499;
+      canceled.code = "REQUEST_ABORTED";
+      return canceled;
+    }
+
+    async readResponseErrorMessage(response){
+      try {
+        return (await response.json()).message || "";
+      } catch(_jsonError){
+        return "";
       }
+    }
+
+    setupAbortListener(signal, context){
+      if (!signal) return null;
+      if (signal.aborted){
+        clearTimeout(context.timeoutId);
+        throw this.abortError();
+      }
+      const onAbort = () => context.controller.abort();
+      signal.addEventListener("abort", onAbort, { once: true });
+      return onAbort;
+    }
+
+    requestHeaders(body){
+      return {
+        "Authorization": `Bearer ${this.config.token}`,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        ...(body ? { "Content-Type": "application/json" } : {})
+      };
+    }
+
+    requestOptions(context, method, body){
+      return {
+        method,
+        cache: context.isGet ? "no-store" : "default",
+        headers: this.requestHeaders(body),
+        body: body ? JSON.stringify(body) : undefined,
+        signal: context.controller.signal
+      };
+    }
+
+    abortedRequestError(context){
+      const timedOut = context.state.didTimeout;
+      const error = new Error(timedOut ? `Request timed out after ${context.timeout} ms.` : "Request canceled.");
+      error.status = timedOut ? 408 : 499;
+      error.code = timedOut ? "REQUEST_TIMEOUT" : "REQUEST_ABORTED";
+      return error;
+    }
+
+    networkError(){
+      const error = new Error("Network error — check your connection, browser permissions, or api.github.com access.");
+      error.status = 0;
+      return error;
+    }
+
+    teardownRequest(signal, onAbort, timeoutId){
+      clearTimeout(timeoutId);
+      if (signal && onAbort) signal.removeEventListener("abort", onAbort);
+    }
+
+    async fetchResponse(context, method, body){
+      try {
+        return await fetch(API + context.requestPath, this.requestOptions(context, method, body));
+      } catch(_networkError){
+        if (context.controller.signal.aborted) throw this.abortedRequestError(context);
+        throw this.networkError();
+      }
+    }
+
+    async ensureOkResponse(response){
+      if (response.ok) return;
+      const message = await this.readResponseErrorMessage(response);
+      const error = new Error(message || `${response.status} ${response.statusText}`);
+      error.status = response.status;
+      throw error;
+    }
+
+    parseResponseBody(response){
+      return response.status === 204 ? null : response.json();
+    }
+
+    async request(path, { method = "GET", body, signal, timeoutMs = REQUEST_TIMEOUT_MS } = {}){
+      const context = this.createRequestContext(path, method, timeoutMs);
+      const onAbort = this.setupAbortListener(signal, context);
+      let response;
 
       try {
-        response = await fetch(API + cacheBustedPath, {
-          method,
-          cache: isGet ? "no-store" : "default",
-          headers: {
-            "Authorization": `Bearer ${this.config.token}`,
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-            ...(body ? { "Content-Type": "application/json" } : {})
-          },
-          body: body ? JSON.stringify(body) : undefined,
-          signal: controller.signal
-        });
-      } catch(_networkError){
-        if (controller.signal.aborted){
-          const error = new Error(didTimeout ? `Request timed out after ${timeout} ms.` : "Request canceled.");
-          error.status = didTimeout ? 408 : 499;
-          error.code = didTimeout ? "REQUEST_TIMEOUT" : "REQUEST_ABORTED";
-          throw error;
-        }
-        const error = new Error("Network error — check your connection, browser permissions, or api.github.com access.");
-        error.status = 0;
-        throw error;
+        response = await this.fetchResponse(context, method, body);
       } finally {
-        clearTimeout(timeoutId);
-        if (signal && onAbort) signal.removeEventListener("abort", onAbort);
+        this.teardownRequest(signal, onAbort, context.timeoutId);
       }
 
-      if (!response.ok){
-        let message = "";
-        try {
-          message = (await response.json()).message || "";
-        } catch(_jsonError){}
-        const error = new Error(message || `${response.status} ${response.statusText}`);
-        error.status = response.status;
-        throw error;
-      }
-
-      return response.status === 204 ? null : response.json();
+      await this.ensureOkResponse(response);
+      return this.parseResponseBody(response);
     }
 
     repoPath(path = ""){
@@ -359,8 +445,16 @@
       return `/repos/${owner}/${repo}${path}`;
     }
 
-    branchRefPath(){
-      return `/git/refs/heads/${segEncode(this.config.branch)}`;
+    branchRefName(){
+      return `heads/${segEncode(this.config.branch)}`;
+    }
+
+    getBranchRefPath(){
+      return `/git/ref/${this.branchRefName()}`;
+    }
+
+    updateBranchRefPath(){
+      return `/git/refs/${this.branchRefName()}`;
     }
 
     assertRepoAccess(){
@@ -426,7 +520,7 @@
 
     /* Git Data API: immutable commit/tree/blob model for CMS-critical fragment edits. */
     async getBranchHead(options = {}){
-      const ref = await this.request(this.repoPath(this.branchRefPath()), options);
+      const ref = await this.request(this.repoPath(this.getBranchRefPath()), options);
       return ref.object.sha;
     }
 
@@ -475,7 +569,7 @@
     }
 
     updateBranchHead(commitSha){
-      return this.request(this.repoPath(this.branchRefPath()), {
+      return this.request(this.repoPath(this.updateBranchRefPath()), {
         method: "PATCH",
         body: {
           sha: commitSha,
@@ -636,55 +730,69 @@
       };
     }
 
+    expectedShaForSave(fragment, overrideSha){
+      return overrideSha || fragment.sha;
+    }
+
+    assertLatestEntryForSave(latestEntry, fragment, force, expectedSha){
+      if (!latestEntry){
+        throw this.conflict(`${fragment.path} was deleted on GitHub before this save.`);
+      }
+      if (force || latestEntry.sha === expectedSha) return;
+      throw this.conflict(`${fragment.path} changed on GitHub since you opened it.`, {
+        remoteBlobSha: latestEntry.sha,
+        localBlobSha: expectedSha
+      });
+    }
+
+    async createSaveCommit(snapshot, fragment, text, message){
+      const newBlob = await this.github.createBlob(text);
+      const newTree = await this.github.createTree(snapshot.treeSha, [{
+        path: fragment.path,
+        mode: "100644",
+        type: "blob",
+        sha: newBlob.sha
+      }]);
+      const newCommit = await this.github.createCommit({
+        message: message || `gitcms: update ${fragment.name}`,
+        treeSha: newTree.sha,
+        parentSha: snapshot.headSha
+      });
+      return { newBlob, newTree, newCommit };
+    }
+
+    saveResult(fragment, text, snapshot, newTree, newBlob, newCommit){
+      return {
+        content: {
+          path: fragment.path,
+          sha: newBlob.sha,
+          size: textSize(text)
+        },
+        commit: {
+          sha: newCommit.sha
+        },
+        repository: {
+          parentCommitSha: snapshot.headSha,
+          treeSha: newTree.sha
+        }
+      };
+    }
+
     async save(fragment, text, message, overrideSha){
       const force = !!overrideSha;
+      const expectedSha = this.expectedShaForSave(fragment, overrideSha);
       let lastUpdateError = null;
 
       for (let attempt = 0; attempt < 2; attempt += 1){
         const snapshot = await this.snapshot();
         const latestEntry = this.entryFor(snapshot, fragment.path);
+        this.assertLatestEntryForSave(latestEntry, fragment, force, expectedSha);
 
-        if (!latestEntry){
-          throw this.conflict(`${fragment.path} was deleted on GitHub before this save.`);
-        }
-
-        const expectedSha = overrideSha || fragment.sha;
-        if (!force && latestEntry.sha !== expectedSha){
-          throw this.conflict(`${fragment.path} changed on GitHub since you opened it.`, {
-            remoteBlobSha: latestEntry.sha,
-            localBlobSha: expectedSha
-          });
-        }
-
-        const newBlob = await this.github.createBlob(text);
-        const newTree = await this.github.createTree(snapshot.treeSha, [{
-          path: fragment.path,
-          mode: "100644",
-          type: "blob",
-          sha: newBlob.sha
-        }]);
-        const newCommit = await this.github.createCommit({
-          message: message || `gitcms: update ${fragment.name}`,
-          treeSha: newTree.sha,
-          parentSha: snapshot.headSha
-        });
+        const { newBlob, newTree, newCommit } = await this.createSaveCommit(snapshot, fragment, text, message);
 
         try {
           await this.github.updateBranchHead(newCommit.sha);
-          return {
-            content: {
-              path: fragment.path,
-              sha: newBlob.sha,
-              size: textSize(text)
-            },
-            commit: {
-              sha: newCommit.sha
-            },
-            repository: {
-              parentCommitSha: snapshot.headSha,
-              treeSha: newTree.sha
-            }
-          };
+          return this.saveResult(fragment, text, snapshot, newTree, newBlob, newCommit);
         } catch(error){
           if (error.status === 409 || error.status === 422){
             lastUpdateError = error;
@@ -891,33 +999,38 @@
       };
     }
 
+    bytesMatchAt(bytes, offset, signature){
+      if ((bytes.length - offset) < signature.length) return false;
+      for (let index = 0; index < signature.length; index += 1){
+        if (bytes[offset + index] !== signature[index]) return false;
+      }
+      return true;
+    }
+
+    imageSignatureMatches(bytes, extension){
+      const signatureChecks = {
+        jpg: [sample => this.bytesMatchAt(sample, 0, [0xff, 0xd8, 0xff])],
+        jpeg: [sample => this.bytesMatchAt(sample, 0, [0xff, 0xd8, 0xff])],
+        png: [sample => this.bytesMatchAt(sample, 0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+        gif: [
+          sample => this.bytesMatchAt(sample, 0, [0x47, 0x49, 0x46, 0x38, 0x37, 0x61]),
+          sample => this.bytesMatchAt(sample, 0, [0x47, 0x49, 0x46, 0x38, 0x39, 0x61])
+        ],
+        webp: [
+          sample => this.bytesMatchAt(sample, 0, [0x52, 0x49, 0x46, 0x46]),
+          sample => this.bytesMatchAt(sample, 8, [0x57, 0x45, 0x42, 0x50])
+        ]
+      };
+      const checks = signatureChecks[extension] || [];
+      return checks.every(check => check(bytes));
+    }
+
     assertImageSignature(buffer, extension){
       const bytes = new Uint8Array(buffer);
-
-      const isJpeg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-      const isPng = bytes.length >= 8 &&
-        bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 &&
-        bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a;
-      const isGif = bytes.length >= 6 &&
-        bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38 &&
-        (bytes[4] === 0x37 || bytes[4] === 0x39) && bytes[5] === 0x61;
-      const isWebp = bytes.length >= 12 &&
-        bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
-        bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
-
-      const matches = {
-        jpg: isJpeg,
-        jpeg: isJpeg,
-        png: isPng,
-        gif: isGif,
-        webp: isWebp
-      };
-
-      if (!matches[extension]){
-        const error = new Error(`File signature does not match .${extension} extension.`);
-        error.status = 400;
-        throw error;
-      }
+      if (this.imageSignatureMatches(bytes, extension)) return;
+      const error = new Error(`File signature does not match .${extension} extension.`);
+      error.status = 400;
+      throw error;
     }
 
     isAllowedName(name){
@@ -1645,6 +1758,26 @@ class FileListView {
       this.text.textContent = "Checking latest GitHub Actions run…";
     }
 
+    runOutcome(status, conclusion){
+      if (status === "completed" && conclusion === "success") return "success";
+      if (status === "completed") return "completed";
+      return "in_progress";
+    }
+
+    runMessage(outcome, status, conclusion, shortSha){
+      if (outcome === "success") return `Deploy workflow succeeded for ${shortSha}. Public site may need a hard refresh.`;
+      if (outcome === "completed") return `Deploy workflow completed with ${conclusion || "unknown result"} for ${shortSha}. Open Actions.`;
+      return `Deploy workflow is ${status} for ${shortSha}.`;
+    }
+
+    runPanelClass(outcome){
+      return outcome === "success"
+        ? "deploy-panel show ok"
+        : outcome === "completed"
+          ? "deploy-panel show err"
+          : "deploy-panel show warn";
+    }
+
     showRun(run){
       this.checkButton.disabled = false;
       this.checkButton.textContent = "check deploy";
@@ -1659,21 +1792,9 @@ class FileListView {
       const status = run.status || "unknown";
       const conclusion = run.conclusion || "";
       const shortSha = (run.head_sha || this.lastCommitSha || "").slice(0, 7);
-
-      if (status === "completed" && conclusion === "success"){
-        this.root.className = "deploy-panel show ok";
-        this.text.textContent = `Deploy workflow succeeded for ${shortSha}. Public site may need a hard refresh.`;
-        return;
-      }
-
-      if (status === "completed"){
-        this.root.className = "deploy-panel show err";
-        this.text.textContent = `Deploy workflow completed with ${conclusion || "unknown result"} for ${shortSha}. Open Actions.`;
-        return;
-      }
-
-      this.root.className = "deploy-panel show warn";
-      this.text.textContent = `Deploy workflow is ${status} for ${shortSha}.`;
+      const outcome = this.runOutcome(status, conclusion);
+      this.root.className = this.runPanelClass(outcome);
+      this.text.textContent = this.runMessage(outcome, status, conclusion, shortSha);
     }
 
     showError(message){
@@ -2032,27 +2153,50 @@ class FileListView {
       }
     }
 
-    async refreshAll(){
-      if (!this.github) return;
-      const currentPath = this.state.currentFile ? this.state.currentFile.path : "";
-      const currentText = this.editorView.getText();
-      const hadUnsavedEdits = this.state.isDirty(currentText);
+    async loadConfigAndApply(){
       try {
         await this.loadProjectConfig();
         this.applyProjectConfig();
       } catch(error){
         this.toasts.show(friendly(error), "err");
       }
-      await this.loadList();
-      if (currentPath && this.state.files.some(file => file.path === currentPath)){
-        await this.openFile(currentPath, { skipDirtyGuard: true });
-        if (hadUnsavedEdits && this.state.currentFile && this.state.currentFile.path === currentPath){
-          this.editorView.editor.value = currentText;
-          this.refreshDirtyUI();
-          this.toasts.show("Refreshed file metadata and restored your unsaved edits", "warn");
-        }
-      }
+    }
+
+    canReloadCurrentFile(currentPath){
+      return !!(currentPath && this.state.files.some(file => file.path === currentPath));
+    }
+
+    shouldRestoreUnsavedEdits(currentPath, hadUnsavedEdits){
+      return !!(hadUnsavedEdits && this.state.currentFile && this.state.currentFile.path === currentPath);
+    }
+
+    restoreUnsavedEdits(currentText){
+      this.editorView.editor.value = currentText;
+      this.refreshDirtyUI();
+      this.toasts.show("Refreshed file metadata and restored your unsaved edits", "warn");
+    }
+
+    async reloadCurrentFile(currentPath, currentText, hadUnsavedEdits){
+      if (!this.canReloadCurrentFile(currentPath)) return;
+      await this.openFile(currentPath, { skipDirtyGuard: true });
+      if (!this.shouldRestoreUnsavedEdits(currentPath, hadUnsavedEdits)) return;
+      this.restoreUnsavedEdits(currentText);
+    }
+
+    async refreshMediaIfOpen(){
       if (this.mediaView.isOpen()) await this.loadMediaList();
+    }
+
+    async refreshAll(){
+      if (!this.github) return;
+      const currentPath = this.state.currentFile ? this.state.currentFile.path : "";
+      const currentText = this.editorView.getText();
+      const hadUnsavedEdits = this.state.isDirty(currentText);
+
+      await this.loadConfigAndApply();
+      await this.loadList();
+      await this.reloadCurrentFile(currentPath, currentText, hadUnsavedEdits);
+      await this.refreshMediaIfOpen();
     }
 
     async loadList(){
@@ -2092,43 +2236,66 @@ class FileListView {
       this.lastFileListKey = this.fileListRenderKey(isDirty);
     }
 
-    async openFile(path, { skipDirtyGuard = false } = {}){
-      if (this.state.busy) return;
-      if (!skipDirtyGuard && this.state.isDirty(this.editorView.getText())){
-        const name = this.state.currentFile ? this.state.currentFile.name : "this file";
-        if (!confirm(`Discard uncommitted edits in ${name}?`)) return;
-      }
+    confirmDiscardOnOpen(skipDirtyGuard){
+      if (skipDirtyGuard) return true;
+      if (!this.state.isDirty(this.editorView.getText())) return true;
+      const name = this.state.currentFile ? this.state.currentFile.name : "this file";
+      return confirm(`Discard uncommitted edits in ${name}?`);
+    }
 
+    beginOpenFile(path){
       if (this.openFileAbortController) this.openFileAbortController.abort();
       const openController = new AbortController();
       this.openFileAbortController = openController;
-
       this.hideConflict();
       this.editorView.showLoading(path);
       this.status.set(`loading ${path}…`);
+      return openController;
+    }
+
+    isCurrentOpenRequest(openController){
+      return this.openFileAbortController === openController;
+    }
+
+    completeOpenFile(fragment){
+      this.state.openFile(fragment);
+      this.editorView.showFile(this.state.currentFile);
+      this.refreshDirtyUI();
+      this.status.set(`opened ${fragment.name}`, "ok");
+    }
+
+    failOpenFile(error){
+      if (isRequestCanceled(error)){
+        this.status.set(error.status === 408 ? "open timed out" : "open canceled", "warn");
+        this.toasts.show(friendly(error), error.status === 408 ? "err" : "warn");
+        return;
+      }
+      this.state.closeFile();
+      this.editorView.showError(friendly(error));
+      this.refreshDirtyUI();
+      this.status.set("open failed", "err");
+    }
+
+    finishOpenFile(openController){
+      if (this.openFileAbortController === openController){
+        this.openFileAbortController = null;
+      }
+    }
+
+    async openFile(path, { skipDirtyGuard = false } = {}){
+      if (this.state.busy) return;
+      if (!this.confirmDiscardOnOpen(skipDirtyGuard)) return;
+      const openController = this.beginOpenFile(path);
 
       try {
         const fragment = await this.fragments.read(path, { signal: openController.signal });
-        if (this.openFileAbortController !== openController) return;
-        this.state.openFile(fragment);
-        this.editorView.showFile(this.state.currentFile);
-        this.refreshDirtyUI();
-        this.status.set(`opened ${fragment.name}`, "ok");
+        if (!this.isCurrentOpenRequest(openController)) return;
+        this.completeOpenFile(fragment);
       } catch(error){
-        if (this.openFileAbortController !== openController) return;
-        if (isRequestCanceled(error)){
-          this.status.set(error.status === 408 ? "open timed out" : "open canceled", "warn");
-          this.toasts.show(friendly(error), error.status === 408 ? "err" : "warn");
-          return;
-        }
-        this.state.closeFile();
-        this.editorView.showError(friendly(error));
-        this.refreshDirtyUI();
-        this.status.set("open failed", "err");
+        if (!this.isCurrentOpenRequest(openController)) return;
+        this.failOpenFile(error);
       } finally {
-        if (this.openFileAbortController === openController){
-          this.openFileAbortController = null;
-        }
+        this.finishOpenFile(openController);
       }
     }
 
@@ -2239,60 +2406,99 @@ class FileListView {
       return false;
     }
 
-    async saveFile(forceSha){
-      if (!this.state.currentFile || this.state.busy) return;
+    canBuildSaveContext(){
+      return !!(this.state.currentFile && !this.state.busy);
+    }
+
+    hasChangesToCommit(text, isForcedCommit){
+      if (isForcedCommit) return true;
+      if (this.state.isDirty(text)) return true;
+      this.toasts.show("Nothing changed — nothing to commit");
+      this.status.set("nothing to commit");
+      return false;
+    }
+
+    buildSaveContext(forceSha){
+      if (!this.canBuildSaveContext()) return null;
       const text = this.editorView.getText();
       const isForcedCommit = !!forceSha;
-
-      if (!isForcedCommit && !this.state.isDirty(text)){
-        this.toasts.show("Nothing changed — nothing to commit");
-        this.status.set("nothing to commit");
-        return;
-      }
-
+      if (!this.hasChangesToCommit(text, isForcedCommit)) return null;
       if (!this.validateBeforeCommit(text)){
         this.status.set("commit canceled", "warn");
-        return;
+        return null;
       }
 
+      return {
+        text,
+        forceSha,
+        isForcedCommit,
+        commitMessage: this.editorView.getCommitMessage()
+      };
+    }
+
+    beginSaveFile(){
       this.state.busy = true;
       this.editorView.setBusy(true);
       this.status.set("committing…");
+    }
+
+    async persistSave(context){
+      return this.fragments.save(
+        this.state.currentFile,
+        context.text,
+        context.commitMessage,
+        context.forceSha
+      );
+    }
+
+    async handleSaveConflict(context){
+      let recovered = false;
+      try {
+        recovered = !context.isForcedCommit && await this.tryRecoverStaleShaCommit(context.text);
+      } catch(recoveryError){
+        this.showConflict(context.text);
+        this.status.set("recovery failed", "err");
+        this.toasts.show(`Could not recover automatically: ${friendly(recoveryError)}`, "err");
+        return true;
+      }
+
+      if (!recovered){
+        this.showConflict(context.text);
+        this.status.set("conflict detected", "warn");
+        this.toasts.show("File changed on GitHub. Choose Keep mine or Take theirs.", "warn");
+      }
+
+      return true;
+    }
+
+    finishSaveFile(){
+      this.state.busy = false;
+      this.editorView.setBusy(false);
+      this.refreshDirtyUI();
+    }
+
+    isConflictError(error){
+      return error.status === 409 || error.status === 422;
+    }
+
+    async saveFile(forceSha){
+      const context = this.buildSaveContext(forceSha);
+      if (!context) return;
+
+      this.beginSaveFile();
 
       try {
-        const response = await this.fragments.save(
-          this.state.currentFile,
-          text,
-          this.editorView.getCommitMessage(),
-          forceSha
-        );
-
-        this.completeCommit(response, text);
+        const response = await this.persistSave(context);
+        this.completeCommit(response, context.text);
       } catch(error){
-        if (error.status === 409 || error.status === 422){
-          let recovered = false;
-          try {
-            recovered = !isForcedCommit && await this.tryRecoverStaleShaCommit(text);
-          } catch(recoveryError){
-            this.showConflict(text);
-            this.status.set("recovery failed", "err");
-            this.toasts.show(`Could not recover automatically: ${friendly(recoveryError)}`, "err");
-            return;
-          }
-
-          if (!recovered){
-            this.showConflict(text);
-            this.status.set("conflict detected", "warn");
-            this.toasts.show("File changed on GitHub. Choose Keep mine or Take theirs.", "warn");
-          }
-        } else {
-          this.status.set("commit failed", "err");
-          this.toasts.show(friendly(error), "err");
+        if (this.isConflictError(error)){
+          await this.handleSaveConflict(context);
+          return;
         }
+        this.status.set("commit failed", "err");
+        this.toasts.show(friendly(error), "err");
       } finally {
-        this.state.busy = false;
-        this.editorView.setBusy(false);
-        this.refreshDirtyUI();
+        this.finishSaveFile();
       }
     }
 
@@ -2356,10 +2562,11 @@ class FileListView {
     async deleteCurrent(){
       if (!this.state.currentFile || !this.state.config) return;
       const file = this.state.currentFile;
-      if (!confirm(`Delete ${file.path} from ${this.state.config.branch}? The commit history keeps it recoverable.`)) return;
+      const message = `Delete ${file.path} from ${this.state.config.branch}? The commit history keeps it recoverable.`;
+      if (!confirm(message)) return;
 
+      this.status.set("deleting partial…");
       try {
-        this.status.set("deleting partial…");
         const deleted = await this.fragments.delete(file);
         this.status.set(`deleted ${file.name}`, "ok");
         this.toasts.show(`Deleted ${file.name}`, "ok");
@@ -2367,13 +2574,14 @@ class FileListView {
         this.closeEditor();
         await this.loadList();
       } catch(error){
-        if (error.status === 409 || error.status === 422){
+        const conflicted = error.status === 409 || error.status === 422;
+        if (conflicted){
           this.status.set("delete conflict", "warn");
           this.toasts.show("It changed on GitHub first — refresh, reopen, then delete.", "err");
-        } else {
-          this.status.set("delete failed", "err");
-          this.toasts.show(friendly(error), "err");
+          return;
         }
+        this.status.set("delete failed", "err");
+        this.toasts.show(friendly(error), "err");
       }
     }
 
@@ -2393,22 +2601,32 @@ class FileListView {
       this.settingsView.toggle();
     }
 
+    hasBlobPreview(file){
+      return String((file && file.previewUrl) || "").startsWith("blob:");
+    }
+
+    mergeMediaFiles(remoteFiles){
+      const byPath = new Map(this.state.mediaFiles.map(file => [file.path, file]));
+
+      remoteFiles.forEach(file => {
+        const existing = byPath.get(file.path);
+        const merged = this.hasBlobPreview(existing)
+          ? { ...file, previewUrl: existing.previewUrl }
+          : file;
+        byPath.set(file.path, merged);
+      });
+
+      return [...byPath.values()].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     async loadMediaList(){
       if (!this.media) return;
       this.mediaView.showLoading();
       this.status.set("loading media…");
 
       try {
-        const localPreviews = new Map(
-          this.state.mediaFiles
-            .filter(file => file.previewUrl && String(file.previewUrl).startsWith("blob:"))
-            .map(file => [file.path, file.previewUrl])
-        );
         const files = await this.media.list();
-        for (const file of files){
-          if (localPreviews.has(file.path)) file.previewUrl = localPreviews.get(file.path);
-        }
-        this.state.setMediaFiles(files);
+        this.state.setMediaFiles(this.mergeMediaFiles(files));
         this.renderMediaListFromState();
         this.status.set(`loaded ${files.length} media file${files.length === 1 ? "" : "s"}`, "ok");
       } catch(error){
@@ -2422,6 +2640,12 @@ class FileListView {
         onInsert: media => this.insertMedia(media),
         onCopy: media => this.copyMediaPath(media)
       });
+    }
+
+    scheduleMediaListRefresh(delayMs = 1500){
+      window.setTimeout(() => {
+        this.loadMediaList();
+      }, delayMs);
     }
 
     async uploadMediaFiles(files){
@@ -2443,7 +2667,7 @@ class FileListView {
         }
       }
 
-      await this.loadMediaList();
+      this.scheduleMediaListRefresh();
     }
 
     insertMedia(media){
@@ -2482,25 +2706,63 @@ class FileListView {
       }, 5000);
     }
 
+    deployOutcome(run){
+      if (!run) return "";
+      if (run.status !== "completed") return "pending";
+      return run.conclusion === "success" ? "ok" : "warn";
+    }
+
+    deployStatusMessage(run){
+      const outcome = this.deployOutcome(run);
+      if (!outcome) return "";
+      if (outcome === "ok") return "deploy succeeded";
+      return `deploy ${run.status || "unknown"}`;
+    }
+
+    deployStatusKind(run){
+      const outcome = this.deployOutcome(run);
+      if (outcome === "pending") return "";
+      return outcome;
+    }
+
+    deployErrorMessage(error){
+      return error.status === 403
+        ? "Could not read workflow status. Token may need Actions: read permission."
+        : friendly(error);
+    }
+
+    async latestDeployRun(){
+      const runs = await this.workflows.latestForBranch(this.state.config.branch);
+      const targetSha = this.deploymentView.lastCommitSha;
+      if (targetSha){
+        const matching = runs.find(run => run.head_sha === targetSha);
+        if (matching) return matching;
+      }
+      return runs[0] || null;
+    }
+
+    applyDeployRunStatus(run){
+      this.deploymentView.showRun(run);
+      const message = this.deployStatusMessage(run);
+      if (!message) return;
+      this.status.set(message, this.deployStatusKind(run));
+    }
+
+    handleDeployStatusError(error, quiet){
+      const message = this.deployErrorMessage(error);
+      this.deploymentView.showError(message);
+      if (!quiet) this.toasts.show(message, "warn");
+    }
+
     async checkDeployStatus({ quiet = false } = {}){
       if (!this.workflows || !this.state.config) return;
       if (!quiet) this.deploymentView.showChecking();
 
       try {
-        const runs = await this.workflows.latestForBranch(this.state.config.branch);
-        const run = runs[0] || null;
-        this.deploymentView.showRun(run);
-        if (run && run.status === "completed" && run.conclusion === "success"){
-          this.status.set("deploy succeeded", "ok");
-        } else if (run){
-          this.status.set(`deploy ${run.status || "unknown"}`, run.status === "completed" ? "warn" : "");
-        }
+        const run = await this.latestDeployRun();
+        this.applyDeployRunStatus(run);
       } catch(error){
-        const message = error.status === 403
-          ? "Could not read workflow status. Token may need Actions: read permission."
-          : friendly(error);
-        this.deploymentView.showError(message);
-        if (!quiet) this.toasts.show(message, "warn");
+        this.handleDeployStatusError(error, quiet);
       }
     }
 
