@@ -999,6 +999,24 @@
       };
     }
 
+    async delete(media){
+      if (!media || !media.path || !media.sha){
+        const error = new Error("Missing media path or sha.");
+        error.status = 400;
+        throw error;
+      }
+
+      const response = await this.github.deleteFile(media.path, {
+        sha: media.sha,
+        message: `gitcms: delete media ${media.name || media.path}`
+      });
+
+      return {
+        path: media.path,
+        commitSha: response.commit ? response.commit.sha : ""
+      };
+    }
+
     bytesMatchAt(bytes, offset, signature){
       if ((bytes.length - offset) < signature.length) return false;
       for (let index = 0; index < signature.length; index += 1){
@@ -1663,7 +1681,7 @@ class FileListView {
       this.list.innerHTML = "";
     }
 
-    render(files, { onInsert, onCopy }){
+    render(files, { onInsert, onCopy, onDelete }){
       this.list.innerHTML = "";
       this.empty.style.display = files.length ? "none" : "block";
       this.empty.textContent = files.length ? "" : "No media yet — upload an image above.";
@@ -1690,10 +1708,12 @@ class FileListView {
           <div class="media-actions">
             <button class="btn" type="button" data-action="insert">insert</button>
             <button class="btn btn-ghost" type="button" data-action="copy">copy</button>
+            <button class="btn btn-ghost btn-danger" type="button" data-action="delete">delete</button>
           </div>`;
 
         info.querySelector('[data-action="insert"]').onclick = () => onInsert(media);
         info.querySelector('[data-action="copy"]').onclick = () => onCopy(media);
+        info.querySelector('[data-action="delete"]').onclick = () => onDelete(media);
 
         item.appendChild(img);
         item.appendChild(info);
@@ -1986,6 +2006,7 @@ class FileListView {
       this.openFileAbortController = null;
       this.dirtyUIRefreshTimer = null;
       this.lastFileListKey = null;
+      this.deletedMediaPaths = new Set();
       this.isOnline = navigator.onLine;
     }
 
@@ -2056,6 +2077,7 @@ class FileListView {
     }
 
     async connect(config, { silent = false } = {}){
+      this.deletedMediaPaths.clear();
       this.state.setConfig(config);
       this.github = new GitHubClient(config);
       this.configRepo = new ConfigRepository(this.github, config.configPath || "gitcms.config.json");
@@ -2606,9 +2628,21 @@ class FileListView {
     }
 
     mergeMediaFiles(remoteFiles){
-      const byPath = new Map(this.state.mediaFiles.map(file => [file.path, file]));
+      const remoteList = Array.isArray(remoteFiles) ? remoteFiles : [];
+      const remotePaths = new Set(remoteList.map(file => file.path));
 
-      remoteFiles.forEach(file => {
+      [...this.deletedMediaPaths].forEach(path => {
+        if (!remotePaths.has(path)) this.deletedMediaPaths.delete(path);
+      });
+
+      const byPath = new Map(
+        this.state.mediaFiles
+          .filter(file => !this.deletedMediaPaths.has(file.path))
+          .map(file => [file.path, file])
+      );
+
+      remoteList.forEach(file => {
+        if (this.deletedMediaPaths.has(file.path)) return;
         const existing = byPath.get(file.path);
         const merged = this.hasBlobPreview(existing)
           ? { ...file, previewUrl: existing.previewUrl }
@@ -2638,7 +2672,8 @@ class FileListView {
     renderMediaListFromState(){
       this.mediaView.render(this.state.mediaFiles, {
         onInsert: media => this.insertMedia(media),
-        onCopy: media => this.copyMediaPath(media)
+        onCopy: media => this.copyMediaPath(media),
+        onDelete: media => this.deleteMedia(media)
       });
     }
 
@@ -2657,6 +2692,7 @@ class FileListView {
         try {
           this.status.set(`uploading ${file.name}…`);
           const uploaded = await this.media.upload(file, this.state.mediaFiles);
+          this.deletedMediaPaths.delete(uploaded.path);
           uploaded.previewUrl = URL.createObjectURL(file);
           this.state.mediaFiles.push(uploaded);
           this.renderMediaListFromState();
@@ -2668,6 +2704,31 @@ class FileListView {
       }
 
       this.scheduleMediaListRefresh();
+    }
+
+    async deleteMedia(media){
+      if (!this.media || !media) return;
+
+      const confirmed = confirm("Delete this media file from the repository? This cannot be undone.");
+      if (!confirmed) return;
+
+      this.status.set(`deleting ${media.name || "media"}…`);
+
+      try {
+        const result = await this.media.delete(media);
+        this.deletedMediaPaths.add(media.path);
+        this.state.setMediaFiles(
+          this.state.mediaFiles.filter(item => item.path !== media.path)
+        );
+        this.renderMediaListFromState();
+        this.toasts.show(`Deleted ${media.name || media.path}`, "ok");
+        this.status.set(`deleted ${media.name || "media"}`, "ok");
+        this.noteDeployPending(result.commitSha, "Media delete");
+        this.scheduleMediaListRefresh();
+      } catch(error){
+        this.status.set("media delete failed", "err");
+        this.toasts.show(friendly(error), "err");
+      }
     }
 
     insertMedia(media){
@@ -2802,7 +2863,8 @@ class FileListView {
       this.media = null;
       this.mediaView.setEnabled(false);
       this.settingsView.setEnabled(false);
-      this.mediaView.render([], { onInsert: () => {}, onCopy: () => {} });
+      this.mediaView.render([], { onInsert: () => {}, onCopy: () => {}, onDelete: () => {} });
+      this.deletedMediaPaths.clear();
       this.state.reset();
       this.closeEditor();
       this.fileListView.list.innerHTML = "";
