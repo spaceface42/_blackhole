@@ -213,7 +213,8 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
   align-items:center;justify-content:center;text-align:center;color:var(--muted);
   font-family:var(--mono);font-size:12px;min-height:86px;cursor:pointer;
 }
-.dropzone:hover,.dropzone.drag{border-color:var(--accent);background:var(--accent-soft);color:var(--text)}
+.dropzone:hover,
+.dropzone.drag{border-color:var(--accent);background:var(--accent-soft);color:var(--text)}
 .dropzone strong{color:var(--text);font-size:12.5px}
 .dropzone small{font-size:11px;color:var(--muted)}
 .media-list{overflow:auto;flex:1;padding:0 10px 10px}
@@ -272,7 +273,8 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
 @media (max-width:760px){
   .shell{flex-direction:column}
   aside{width:100%;max-height:38vh;border-right:0;border-bottom:1px solid var(--line)}
-  .media-drawer,.settings-drawer{width:100%;max-height:42vh;border-left:0;border-top:1px solid var(--line)}
+  .media-drawer,
+  .settings-drawer{width:100%;max-height:42vh;border-left:0;border-top:1px solid var(--line)}
   #remote{display:none}
   #commitmsg{max-width:none}
 }
