@@ -1,0 +1,61 @@
+name: Build and deploy site
+
+# Builds src/ into docs/ on the runner and publishes docs/ to GitHub Pages.
+# docs/ is never committed. In the repo settings, set
+#   Settings -> Pages -> Build and deployment -> Source: "GitHub Actions"
+
+on:
+  push:
+    branches: [main] # change if your CMS commits to a different branch
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch: # lets you re-run the deploy from the Actions tab
+
+# Least privilege by default; the deploy job adds only what it needs.
+permissions:
+  contents: read
+
+# Saves from the CMS can arrive quickly. Let a running deploy finish, then run
+# only the newest queued one (older queued runs are dropped automatically).
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Build site (src -> docs)
+        run: node scripts/build.mjs
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs
+          # Dotfiles are skipped by default. Only enable this if you really need to
+          # publish them (for example src/.well-known/):
+          # include-hidden-files: true
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
